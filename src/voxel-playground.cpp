@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 
 #include "shader.h"
 #include "window.h"
@@ -42,17 +43,24 @@ int main(int argc, char* argv[])
     shader->bind_attribute(1, "textureCoords");
     auto transformation_matrix_location = shader->get_uniform_location("transformationMatrix");
 
-    auto matrix = mul(
-        translation_matrix(float3{ 1.f, 1.f, 1.f }),
-        scaling_matrix(float3{ 0.3f, 1.f, 1.f })
-        );
-    shader->begin();
-    shader->load_uniform(transformation_matrix_location, matrix);
-    shader->end();
+    using namespace std::chrono;
+    auto start = high_resolution_clock::now();
 
     while (app)
     {
+        auto now = high_resolution_clock::now();
+        auto diff = duration_cast<milliseconds>(now - start).count();
+        auto elapsed_sec = diff / 1000.f;
+
+        auto s = std::abs(std::sinf(elapsed_sec));
+
+        auto matrix = mul(
+            translation_matrix(float3{ 0.f, 0.f, 0.f }),
+            scaling_matrix(float3{ s, s, s })
+        );
+
         shader->begin();
+        shader->load_uniform(transformation_matrix_location, matrix);
         obj.draw(mish);
         shader->end();
     }
