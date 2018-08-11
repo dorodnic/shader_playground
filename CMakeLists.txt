@@ -16,6 +16,7 @@ add_definitions(-DELPP_THREAD_SAFE)
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(RESOURCES resources/shaders/fragment.glsl
                   resources/shaders/vertex.glsl
+                  resources/mish.jpg
                   )
 
     foreach(item IN LISTS RESOURCES)
@@ -62,7 +63,8 @@ add_executable(voxel-playground
     third-party/easyloggingpp/easylogging++.cc
     ${RESOURCES}
     )
-include_directories(voxel-playground third-party/imgui third-party/glew/include third-party/easyloggingpp)
+include_directories(voxel-playground third-party/imgui third-party/glew/include 
+                    third-party/easyloggingpp third-party)
 target_link_libraries(voxel-playground ${DEPENDENCIES})
 add_dependencies(voxel-playground resources-target)
 
@@ -76,7 +78,7 @@ if(WIN32)
         third-party/easyloggingpp/easylogging++.cc
     )
 
-    source_group("Shaders" FILES
+    source_group("Resources" FILES
 		${RESOURCES}
     )
 

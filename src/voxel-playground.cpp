@@ -11,9 +11,17 @@
 #include <easylogging++.h>
 INITIALIZE_EASYLOGGINGPP
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 struct float3
 {
     float x, y, z;
+};
+
+struct float2
+{
+    float u, v;
 };
 
 struct triangle
@@ -27,13 +35,18 @@ enum class vbo_type
     element_array_buffer,
 };
 
+inline bool file_exists(const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
+}
+
 class vbo
 {
 public:
     vbo(vbo_type type = vbo_type::array_buffer);
     ~vbo();
 
-    void upload(int attribute, float3* xyz, int count);
+    void upload(int attribute, float* xyz, int size, int count);
     void upload(triangle* indx, int count);
 
     void draw_triangles();
@@ -75,12 +88,12 @@ void vbo::unbind()
     glBindBuffer(convert_type(_type), 0);
 }
 
-void vbo::upload(int attribute, float3* xyz, int count)
+void vbo::upload(int attribute, float* xyz, int size, int count)
 {
     assert(_type == vbo_type::array_buffer);
     bind();
-    glBufferData(convert_type(_type), count * sizeof(float3), xyz, GL_STATIC_DRAW);
-    glVertexAttribPointer(attribute, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBufferData(convert_type(_type), count * size * sizeof(float), xyz, GL_STATIC_DRAW);
+    glVertexAttribPointer(attribute, size, GL_FLOAT, GL_FALSE, 0, 0);
     _size = count;
     unbind();
 }
@@ -112,31 +125,111 @@ vbo::~vbo()
     glDeleteBuffers(1, &_id);
 }
 
+class texture
+{
+public:
+    texture();
+    ~texture();
+
+    void upload(const std::string& filename);
+    void upload(int channels, int bits_per_channel, int width, int height, int stride, uint8_t* data);
+
+    void bind() const;
+    void unbind() const;
+private:
+    uint32_t _texture;
+};
+
+void texture::bind() const
+{
+    glBindTexture(GL_TEXTURE_2D, _texture);
+}
+
+void texture::unbind() const
+{
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+texture::texture() : _texture()
+{
+    glGenTextures(1, &_texture);
+}
+
+texture::~texture()
+{
+    glDeleteTextures(1, &_texture);
+}
+
+void texture::upload(const std::string& filename)
+{
+    if (!file_exists(filename))
+        throw std::runtime_error("Texture file not found!");
+
+    int x, y, comp;
+    auto r = stbi_load(filename.c_str(), &x, &y, &comp, false);
+    upload(comp, 8, x, y, x, r);
+    stbi_image_free(r);
+}
+
+void texture::upload(int channels, int bits_per_channel, int width, int height, int stride, uint8_t* data)
+{
+    bind();
+
+    if (channels == 3 && bits_per_channel == 8)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    }
+    else if (channels == 4 && bits_per_channel == 8)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
+    else if (channels == 1 && bits_per_channel == 8)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
+    }
+    else if (channels == 1 && bits_per_channel == 16)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_SHORT, data);
+    }
+    else throw std::runtime_error("Unsupported image format!");
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    
+    unbind();
+}
+
 class vao
 {
 public:
-    vao(float3* vert, int vert_count,
+    vao(float3* vert, float2* uvs, int vert_count,
         triangle* indx, int indx_count);
     ~vao();
     void bind();
     void unbind();
-    void draw();
+    void draw(const texture& tex);
 
 private:
     uint32_t _id;
     vbo _vertexes;
     vbo _indexes;
+    vbo _uvs;
 };
 
-vao::vao(float3* vert, int vert_count,
+vao::vao(float3* vert, float2* uvs, int vert_count,
          triangle* indx, int indx_count)
     : _vertexes(vbo_type::array_buffer),
+      _uvs(vbo_type::array_buffer),
       _indexes(vbo_type::element_array_buffer)
 {
     glGenVertexArrays(1, &_id);
     bind();
     _indexes.upload(indx, indx_count);
-    _vertexes.upload(0, vert, vert_count);
+    _vertexes.upload(0, (float*)vert, 3, vert_count);
+    _uvs.upload(1, (float*)uvs, 2, vert_count);
     unbind();
 }
 
@@ -155,13 +248,18 @@ void vao::unbind()
     glBindVertexArray(0);
 }
 
-void vao::draw()
+void vao::draw(const texture& tex)
 {
     bind();
 
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(0); // vertex
+    glEnableVertexAttribArray(1); // uv
+    glActiveTexture(GL_TEXTURE0);
+    tex.bind();
     _indexes.draw_indexed_triangles();
+    tex.unbind();
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 
     unbind();
 }
@@ -255,16 +353,26 @@ int main(int argc, char* argv[])
         { 0.5, -0.5, 0.f },
         { 0.5, 0.5, 0.f },
     };
+    float2 uvs[] = {
+        { 0, 0 },
+        { 0, 1 },
+        { 1, 1 },
+        { 1, 0 }
+    };
     triangle index[] = {
         { 0, 1, 3 },
         { 3, 1, 2}
     };
-    vao obj(vertex, sizeof(vertex) / sizeof(vertex[0]),
+    vao obj(vertex, uvs, sizeof(vertex) / sizeof(vertex[0]),
             index, sizeof(index) / sizeof(index[0]));
+
+    texture mish;
+    mish.upload("resources/mish.jpg");
 
     auto shader = shader_program::load("resources/shaders/vertex.glsl", 
                                        "resources/shaders/fragment.glsl");
     glBindAttribLocation(shader->get_id(), 0, "position");
+    glBindAttribLocation(shader->get_id(), 1, "textureCoords");
 
     while (app)
     {
@@ -293,7 +401,7 @@ int main(int argc, char* argv[])
 
 
         shader->begin();
-        obj.draw();
+        obj.draw(mish);
         shader->end();
 
         //ImGui::Render();
