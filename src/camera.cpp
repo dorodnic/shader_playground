@@ -1,5 +1,6 @@
 #include "camera.h"
 
+
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include <arcball_camera.h>
 
@@ -27,6 +28,33 @@ float camera::clock() const
 
 void camera::update(const window& w)
 {
+    auto dir = _target - _pos;
+    auto x_axis = cross(dir, _up);
+    auto step = clock() / w.width();
+    auto forward_step = dir * step;
+    auto horizontal_step = x_axis * step;
+
+    if (ImGui::IsKeyPressed('w') || ImGui::IsKeyPressed('W'))
+    {
+        _pos += forward_step;
+        _target += forward_step;
+    }
+    if (ImGui::IsKeyPressed('s') || ImGui::IsKeyPressed('S'))
+    {
+        _pos -= forward_step;
+        _target -= forward_step;
+    }
+    if (ImGui::IsKeyPressed('d') || ImGui::IsKeyPressed('D'))
+    {
+        _pos += horizontal_step;
+        _target += horizontal_step;
+    }
+    if (ImGui::IsKeyPressed('a') || ImGui::IsKeyPressed('A'))
+    {
+        _pos -= horizontal_step;
+        _target -= horizontal_step;
+    }
+
     arcball_camera_update(
         (float*)&_pos, (float*)&_target, (float*)&_up, (float*)&_view,
         clock(),
