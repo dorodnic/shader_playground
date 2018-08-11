@@ -175,27 +175,79 @@ void GLAPIENTRY opengl_error_callback(GLenum source, GLenum type, GLuint id,
         LOG(INFO) << message;
 }
 
-int main(int argc, char* argv[])
+class window
 {
-    START_EASYLOGGINGPP(argc, argv);
+public:
+    window(int w, int h, const char* title);
+    ~window();
 
+    operator bool();
+
+    int width() const { return _w; }
+    int height() const { return _h; }
+
+private:
+    GLFWwindow* _window;
+    int _w, _h;
+    bool _first = true;
+};
+
+window::~window()
+{
+    glfwDestroyWindow(_window);
+    glfwTerminate();
+}
+
+window::operator bool() 
+{
+    if (!_first)
+        glfwSwapBuffers(_window);
+
+    _first = false;
+
+    if (glGetError() != GL_NO_ERROR)
+        __debugbreak();
+
+    auto res = !glfwWindowShouldClose(_window);
+
+    glfwPollEvents();
+
+    glfwGetFramebufferSize(_window, &_w, &_h);
+    glViewport(0, 0, _w, _h);
+    glfwGetWindowSize(_window, &_w, &_h);
+
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    return res;
+}
+
+window::window(int w, int h, const char* title)
+    : _w(w), _h(h)
+{
     if (!glfwInit()) {
         LOG(ERROR) << "Can't initialize GLFW!";
-        return EXIT_FAILURE;
+        throw std::runtime_error("Can't initialize GLFW!");
     }
 
-    auto window = glfwCreateWindow(1280, 720, "Voxel Playground", nullptr, nullptr);
-    glfwMakeContextCurrent(window);
-    //ImGui_ImplGlfw_Init(window, true);
+    _window = glfwCreateWindow(_w, _h, title, nullptr, nullptr);
+    glfwMakeContextCurrent(_window);
 
     glewExperimental = TRUE;
     if (glewInit() != GLEW_OK) {
         LOG(ERROR) << "Could not initialize GLEW!";
-        return EXIT_FAILURE;
+        throw std::runtime_error("Could not initialize GLEW!");
     }
 
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(opengl_error_callback, 0);
+}
+
+int main(int argc, char* argv[])
+{
+    START_EASYLOGGINGPP(argc, argv);
+
+    window app(1280, 720, "Voxel Playground");
 
     float3 vertex[] = {
         { -0.5, 0.5, 0.f },
@@ -214,13 +266,9 @@ int main(int argc, char* argv[])
                                        "resources/shaders/fragment.glsl");
     glBindAttribLocation(shader->get_id(), 0, "position");
 
-    while (!glfwWindowShouldClose(window))
+    while (app)
     {
-        glfwPollEvents();
-
-        int w, h;
-        glfwGetFramebufferSize(window, &w, &h);
-        glViewport(0, 0, w, h);
+        
 
         //glMatrixMode(GL_PROJECTION);
         //glLoadIdentity();
@@ -243,12 +291,6 @@ int main(int argc, char* argv[])
             static_cast<int>(ImGui::GetIO().DisplaySize.x),
             static_cast<int>(ImGui::GetIO().DisplaySize.y));*/
 
-        glfwGetWindowSize(window, &w, &h);
-
-
-        glClearColor(1, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT);
-
 
         shader->begin();
         obj.draw();
@@ -256,15 +298,11 @@ int main(int argc, char* argv[])
 
         //ImGui::Render();
 
-        glfwSwapBuffers(window);
-
-        if (glGetError() != GL_NO_ERROR)
-            __debugbreak();
+        
     }
 
     //ImGui_ImplGlfw_Shutdown();
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    
 
     return EXIT_SUCCESS;
 }
