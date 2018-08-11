@@ -2,11 +2,31 @@ cmake_minimum_required(VERSION 2.8.3)
 
 project(voxel_playground)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(OpenGL REQUIRED)
 list(APPEND DEPENDENCIES ${OPENGL_LIBRARIES})
 
 add_subdirectory(third-party/glew/build/cmake)
 list(APPEND DEPENDENCIES glew_s)
+
+add_definitions(-DELPP_THREAD_SAFE)
+
+if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+    set(RESOURCES resources/shaders/fragment.glsl
+                  resources/shaders/vertex.glsl
+                  )
+
+    foreach(item IN LISTS RESOURCES)
+        add_custom_command(
+            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${item}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${item}" "${CMAKE_CURRENT_BINARY_DIR}/${item}"
+            DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${item}"
+        )
+    endforeach()
+endif()
+add_custom_target(resources-target ALL DEPENDS ${RESOURCES})
 
 if(WIN32)
 	add_subdirectory(third-party/glfw)
@@ -40,9 +60,11 @@ add_executable(voxel-playground
 	third-party/imgui/imgui.cpp 
 	third-party/imgui/imgui_impl_glfw.cpp
     third-party/easyloggingpp/easylogging++.cc
+    ${RESOURCES}
     )
 include_directories(voxel-playground third-party/imgui third-party/glew/include third-party/easyloggingpp)
 target_link_libraries(voxel-playground ${DEPENDENCIES})
+add_dependencies(voxel-playground resources-target)
 
 if(WIN32)
 	source_group("Source Files" FILES
@@ -52,6 +74,10 @@ if(WIN32)
 		third-party/imgui/imgui.cpp 
 	    third-party/imgui/imgui_impl_glfw.cpp
         third-party/easyloggingpp/easylogging++.cc
+    )
+
+    source_group("Shaders" FILES
+		${RESOURCES}
     )
 
     set_target_properties (glew PROPERTIES
