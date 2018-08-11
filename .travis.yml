@@ -1,0 +1,51 @@
+os:
+  - linux
+
+sudo: required
+language: cpp
+
+cache:
+  apt: true
+
+matrix:
+  include:
+    - compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+      env: COMPILER=g++-5
+
+dist: trusty
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test;
+      wget https://github.com/glfw/glfw/releases/download/3.1.1/glfw-3.1.1.zip;
+      sudo apt-get update;
+    fi
+
+install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      sudo apt-get install -qq build-essential xorg-dev libglu1-mesa-dev libglew-dev libglm-dev;
+      sudo apt-get install -qq cmake;
+      sudo apt-get install -qq gcc-5 g++-5;
+
+      cmake --version;
+
+      unzip glfw-3.1.1.zip;
+      cd glfw-3.1.1;
+      sudo cmake -G "Unix Makefiles" -DBUILD_SHARED_LIBS=ON;
+      sudo make;
+      sudo make install;
+      cd ..;
+    fi
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
+script:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      uname -a;
+      cmake .;
+      make;
+    fi
