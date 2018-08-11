@@ -10,6 +10,8 @@
 #include <easylogging++.h>
 INITIALIZE_EASYLOGGINGPP
 
+#include <imgui.h>
+
 int main(int argc, char* argv[])
 {
     START_EASYLOGGINGPP(argc, argv);
@@ -50,6 +52,8 @@ int main(int argc, char* argv[])
 
     while (app)
     {
+        glEnable(GL_DEPTH_TEST);
+
         auto s = std::abs(std::sinf(cam.clock())) + 0.5f;
 
         auto matrix = mul(
@@ -65,6 +69,20 @@ int main(int argc, char* argv[])
         shader->load_uniform(projection_matrix_location, cam.projection_matrix());
         obj.draw(mish);
         shader->end();
+
+        glDisable(GL_DEPTH_TEST);
+
+        const auto flags = ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoCollapse;
+        ImGui::SetNextWindowPos({ 0, 0 });
+        ImGui::SetNextWindowSize({ 200, static_cast<float>(app.height()) });
+
+        ImGui::Begin("Control Panel", nullptr, flags);
+
+        ImGui::Text("Text");
+
+        ImGui::End();
     }
 
     return EXIT_SUCCESS;
