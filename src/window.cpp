@@ -1,16 +1,18 @@
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
+
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <imgui_impl_opengl3.h>
 
 #include <iostream>
 
 #include "window.h"
+#include "util.h"
 
 #include <easylogging++.h>
 
-void GLAPIENTRY opengl_error_callback(GLenum source, GLenum type, GLuint id,
+void APIENTRY opengl_error_callback(GLenum source, GLenum type, GLuint id,
     GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
     if (type == GL_DEBUG_TYPE_ERROR)
@@ -21,8 +23,15 @@ void GLAPIENTRY opengl_error_callback(GLenum source, GLenum type, GLuint id,
 
 window::~window()
 {
-    ImGui::GetIO().Fonts->ClearFonts();  // To be refactored into Viewer theme object
+    if (!_first)
+    {
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+
+    ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwDestroyWindow(_window);
     glfwTerminate();
@@ -33,6 +42,8 @@ window::operator bool()
     if (!_first)
     {
         ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         glfwSwapBuffers(_window);
     }
 
@@ -50,7 +61,9 @@ window::operator bool()
     glViewport(0, 0, _w, _h);
     glfwGetWindowSize(_window, &_w, &_h);
 
-    ImGui_ImplGlfw_NewFrame(1.f);
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -62,25 +75,55 @@ window::window(int w, int h, const char* title)
     : _w(w), _h(h)
 {
     if (!glfwInit()) {
-        LOG(ERROR) << "Can't initialize GLFW!";
-        throw std::runtime_error("Can't initialize GLFW!");
+        throw util_exception("Can't initialize GLFW!");
     }
+
+    // Decide GL+GLSL versions
+#if __APPLE__
+    // GL 3.2 + GLSL 150
+    const char* glsl_version = "#version 150";
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
+#else
+    // GL 3.0 + GLSL 130
+    const char* glsl_version = "#version 130";
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
+#endif
 
     _window = glfwCreateWindow(_w, _h, title, nullptr, nullptr);
     glfwMakeContextCurrent(_window);
+    glfwSwapInterval(0);
 
-    glewExperimental = TRUE;
-    if (glewInit() != GLEW_OK) {
-        LOG(ERROR) << "Could not initialize GLEW!";
-        throw std::runtime_error("Could not initialize GLEW!");
+    if (gl3wInit()) {
+        throw util_exception("Can't initialize OpenGL!");
     }
 
-    ImGui_ImplGlfw_Init(_window, true);
+    if (!gl3wIsSupported(3, 2)) {
+        throw util_exception("OpenGL 3.2 not supported!");
+    }
+
+    LOG(INFO) << "OpenGL " << glGetString(GL_VERSION) << ", GLSL " <<
+        glGetString(GL_SHADING_LANGUAGE_VERSION);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+
+    ImGui_ImplGlfw_InitForOpenGL(_window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
+
+    // Setup style
+    ImGui::StyleColorsDark();
 
     // Register for UI-controller events
     glfwSetWindowUserPointer(_window, this);
-
-    glfwSwapInterval(0);
 
     glfwSetCursorPosCallback(_window, [](GLFWwindow* w, double cx, double cy)
     {

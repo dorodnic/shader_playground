@@ -8,10 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(OpenGL REQUIRED)
 list(APPEND DEPENDENCIES ${OPENGL_LIBRARIES})
 
-add_subdirectory(third-party/glew/build/cmake)
-list(APPEND DEPENDENCIES glew_s)
-
 add_definitions(-DELPP_THREAD_SAFE)
+add_definitions(-DNOMINMAX)
 
 set(SHADERS resources/shaders/fragment.glsl
             resources/shaders/vertex.glsl)
@@ -24,6 +22,7 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/dragon.obj
                   resources/earth.obj
                   resources/Diffuse_2K.png
+                  resources/Night_lights_2K.png
                   resources/cat_diff.tga
                   resources/cat.obj
                   resources/cat.mtl
@@ -77,10 +76,12 @@ add_executable(voxel-playground
     third-party/imgui/imgui.cpp 
     third-party/imgui/imgui_draw.cpp 
     third-party/imgui/imgui_impl_glfw.cpp
+    third-party/imgui/imgui_impl_opengl3.cpp
     third-party/easyloggingpp/easylogging++.cc
+    third-party/gl3w/src/gl3w.c
     ${SHADERS}
     )
-include_directories(voxel-playground third-party/imgui third-party/glew/include 
+include_directories(voxel-playground third-party/imgui third-party/gl3w/include 
                     third-party/easyloggingpp third-party third-party/readerwriterqueue
                     third-party/linalg third-party/OBJ-Loader)
 target_link_libraries(voxel-playground ${DEPENDENCIES})
@@ -93,23 +94,16 @@ if(WIN32)
     source_group("3rd-Party" FILES
         third-party/imgui/imgui.cpp 
         third-party/imgui/imgui_impl_glfw.cpp
+        third-party/imgui/imgui_impl_opengl3.cpp
         third-party/imgui/imgui_draw.cpp 
         third-party/easyloggingpp/easylogging++.cc
+        third-party/gl3w/src/gl3w.c
     )
 
     source_group("Shaders" FILES
         ${SHADERS}
     )
 
-    set_target_properties (glew PROPERTIES
-        FOLDER Third-Party
-    )
-    set_target_properties (glew_s PROPERTIES
-        FOLDER Third-Party
-    )
-    set_target_properties (glewinfo PROPERTIES
-        FOLDER Third-Party
-    )
     set_target_properties (glfw3 PROPERTIES
         FOLDER Third-Party
     )

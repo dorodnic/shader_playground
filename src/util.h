@@ -6,6 +6,12 @@
 
 #include <linalg.h>
 
+class util_exception : public std::runtime_error
+{
+public:
+    util_exception(const std::string& err);
+};
+
 using namespace linalg::aliases;
 using namespace linalg;
 

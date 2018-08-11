@@ -1,7 +1,7 @@
 #include "shader.h"
 #include "util.h"
 
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 #include <easylogging++.h>
 

@@ -33,17 +33,20 @@ int main(int argc, char* argv[])
     float progress = 0.f;
     int vertex_count = 0;
 
+    texture diffuse;
+    diffuse.upload("resources/Diffuse_2K.png");
+    texture diffuse2;
+    diffuse2.upload("resources/Night_lights_2K.png");
+
     moodycamel::ReaderWriterQueue<objl::Loader> queue;
 
     std::thread loader_thread([&]() {
         objl::Loader loader;
-        bool loadout = loader.LoadFile("resources/cat.obj",
+        bool loadout = loader.LoadFile("resources/earth.obj",
             [&](float p) { progress = p; });
         LOG(INFO) << "Done loading model";
         queue.enqueue(std::move(loader));
     });
-
-    texture diffuse;
 
     auto read_from_loader = [&](const objl::Loader& loader) {
         for (int i = 0; i < loader.LoadedMeshes.size(); i++)
@@ -51,11 +54,14 @@ int main(int argc, char* argv[])
             objl::Mesh curMesh = loader.LoadedMeshes[i];
             LOG(INFO) << "Loaded mesh " << curMesh.MeshName;
 
-            auto dir = get_directory(loader.Path);
-            auto diffuse_path = curMesh.MeshMaterial.map_Kd;
-            if (dir != "") diffuse_path = dir + "/" + diffuse_path;
+            if (curMesh.MeshMaterial.map_Kd != "")
+            {
+                auto dir = get_directory(loader.Path);
+                auto diffuse_path = curMesh.MeshMaterial.map_Kd;
+                if (dir != "") diffuse_path = dir + "/" + diffuse_path;
 
-            diffuse.upload(diffuse_path);
+                diffuse.upload(diffuse_path);
+            }
 
             std::vector<float3> positions;
             for (auto&& v : curMesh.Vertices)
@@ -128,7 +134,7 @@ int main(int argc, char* argv[])
         auto s = std::abs(std::sinf(cam.clock())) * 0.2f + 0.8f;
         auto t = std::abs(std::sinf(cam.clock() + 5)) * 0.2f + 0.8f;
 
-        l.position = { 2.f * max * std::sinf(cam.clock()), 0.f, 2.f * max * std::cosf(cam.clock()) };
+        l.position = { 2.f * max * std::sinf(-cam.clock()), 0.f, 2.f * max * std::cosf(-cam.clock()) };
         l.colour = { s, t, s };
 
         auto matrix = mul(
@@ -150,8 +156,14 @@ int main(int argc, char* argv[])
         shader->load_uniform(camera_matrix_location, cam.view_matrix());
         shader->load_uniform(projection_matrix_location, cam.projection_matrix());
 
+        diffuse.bind(0);
+        diffuse2.bind(1);
         for (auto&& vao : vaos)
-            vao.draw(diffuse);
+        {
+            vao.draw();
+        }
+        diffuse2.unbind();
+        diffuse.unbind();
 
         shader->end();
 

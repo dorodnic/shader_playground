@@ -1,5 +1,5 @@
 #pragma once
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 #include "util.h"
 #include "texture.h"
@@ -13,7 +13,7 @@ public:
     ~vao();
     void bind();
     void unbind();
-    void draw(const texture& tex);
+    void draw();
 
     vao(vao&& other);
 

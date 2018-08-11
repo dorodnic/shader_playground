@@ -42,17 +42,16 @@ void vao::unbind()
     glBindVertexArray(0);
 }
 
-void vao::draw(const texture& tex)
+void vao::draw()
 {
     bind();
 
     glEnableVertexAttribArray(0); // vertex
     glEnableVertexAttribArray(1); // uv
     glEnableVertexAttribArray(2); // normals
-    glActiveTexture(GL_TEXTURE0);
-    tex.bind();
+    
     _indexes.draw_indexed_triangles();
-    tex.unbind();
+    
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);

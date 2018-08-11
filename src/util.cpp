@@ -3,6 +3,14 @@
 #include <fstream>
 #include <vector>
 
+#include <easylogging++.h>
+
+util_exception::util_exception(const std::string& err)
+    : runtime_error(err)
+{
+    LOG(ERROR) << err;
+}
+
 std::string get_directory(const std::string& fname)
 {
     size_t pos = fname.find_last_of("\\/");

@@ -1,6 +1,6 @@
 #include "vbo.h"
 
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 #include <easylogging++.h>
 #include <assert.h>
 
