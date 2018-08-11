@@ -14,6 +14,9 @@ public:
     const float4x4& projection_matrix() const { return _projection; }
     const float4x4& view_matrix() const { return _view; }
 
+    void set_position(float3 pos);
+    void look_at(float3 at);
+
     float clock() const;
 
 private:

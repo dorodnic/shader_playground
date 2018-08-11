@@ -16,9 +16,18 @@ vao::vao(float3* vert, float2* uvs, int vert_count,
     unbind();
 }
 
+vao::vao(vao&& other)
+    : _id(other._id), 
+      _indexes(std::move(other._indexes)),
+      _vertexes(std::move(other._vertexes)),
+      _uvs(std::move(other._uvs))
+{
+    other._id = 0;
+}
+
 vao::~vao()
 {
-    glDeleteVertexArrays(1, &_id);
+    if (_id) glDeleteVertexArrays(1, &_id);
 }
 
 void vao::bind()

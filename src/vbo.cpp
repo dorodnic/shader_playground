@@ -61,7 +61,13 @@ void vbo::draw_indexed_triangles()
     glDrawElements(GL_TRIANGLES, _size * (sizeof(int3) / sizeof(int)), GL_UNSIGNED_INT, 0);
 }
 
+vbo::vbo(vbo&& other)
+    : _id(other._id), _type(other._type), _size(other._size)
+{
+    other._id = 0;
+}
+
 vbo::~vbo()
 {
-    glDeleteBuffers(1, &_id);
+    if (_id) glDeleteBuffers(1, &_id);
 }

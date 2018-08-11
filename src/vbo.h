@@ -13,6 +13,7 @@ class vbo
 {
 public:
     vbo(vbo_type type = vbo_type::array_buffer);
+    vbo(vbo&& other);
     ~vbo();
 
     void upload(int attribute, float* xyz, int size, int count);
@@ -25,6 +26,7 @@ public:
     void unbind();
 
 private:
+    vbo(const vbo& other) = delete;
     static int convert_type(vbo_type type);
 
     uint32_t _id;

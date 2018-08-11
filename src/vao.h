@@ -15,7 +15,11 @@ public:
     void unbind();
     void draw(const texture& tex);
 
+    vao(vao&& other);
+
 private:
+    vao(const vao& other) = delete;
+
     uint32_t _id;
     vbo _vertexes;
     vbo _indexes;

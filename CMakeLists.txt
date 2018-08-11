@@ -13,10 +13,14 @@ list(APPEND DEPENDENCIES glew_s)
 
 add_definitions(-DELPP_THREAD_SAFE)
 
+set(SHADERS resources/shaders/fragment.glsl
+            resources/shaders/vertex.glsl)
+
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(RESOURCES resources/shaders/fragment.glsl
                   resources/shaders/vertex.glsl
                   resources/mish.jpg
+                  resources/house.obj
                   )
 
     foreach(item IN LISTS RESOURCES)
@@ -67,10 +71,10 @@ add_executable(voxel-playground
     third-party/imgui/imgui.cpp 
     third-party/imgui/imgui_impl_glfw.cpp
     third-party/easyloggingpp/easylogging++.cc
-    ${RESOURCES}
+    ${SHADERS}
     )
 include_directories(voxel-playground third-party/imgui third-party/glew/include 
-                    third-party/easyloggingpp third-party third-party/linalg)
+                    third-party/easyloggingpp third-party third-party/linalg third-party/OBJ-Loader)
 target_link_libraries(voxel-playground ${DEPENDENCIES})
 add_dependencies(voxel-playground resources-target)
 
@@ -84,8 +88,8 @@ if(WIN32)
         third-party/easyloggingpp/easylogging++.cc
     )
 
-    source_group("Resources" FILES
-        ${RESOURCES}
+    source_group("Shaders" FILES
+        ${SHADERS}
     )
 
     set_target_properties (glew PROPERTIES
