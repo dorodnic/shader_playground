@@ -37,17 +37,25 @@ int main(int argc, char* argv[])
 
     std::thread loader_thread([&]() {
         objl::Loader loader;
-        bool loadout = loader.LoadFile("resources/dragon.obj",
+        bool loadout = loader.LoadFile("resources/cat.obj",
             [&](float p) { progress = p; });
         LOG(INFO) << "Done loading model";
         queue.enqueue(std::move(loader));
     });
+
+    texture diffuse;
 
     auto read_from_loader = [&](const objl::Loader& loader) {
         for (int i = 0; i < loader.LoadedMeshes.size(); i++)
         {
             objl::Mesh curMesh = loader.LoadedMeshes[i];
             LOG(INFO) << "Loaded mesh " << curMesh.MeshName;
+
+            auto dir = get_directory(loader.Path);
+            auto diffuse_path = curMesh.MeshMaterial.map_Kd;
+            if (dir != "") diffuse_path = dir + "/" + diffuse_path;
+
+            diffuse.upload(diffuse_path);
 
             std::vector<float3> positions;
             for (auto&& v : curMesh.Vertices)
@@ -79,9 +87,6 @@ int main(int argc, char* argv[])
     l.position = { 100.f, 0.f, -20.f };
     l.colour = { 1.f, 0.f, 0.f };
 
-    texture mish;
-    mish.upload("resources/white.png");
-
     auto shader = shader_program::load("resources/shaders/vertex.glsl", 
                                        "resources/shaders/fragment.glsl");
     shader->bind_attribute(0, "position");
@@ -109,12 +114,14 @@ int main(int argc, char* argv[])
     while (app)
     {
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
 
         objl::Loader loader;
         if (queue.try_dequeue(loader))
         {
             read_from_loader(loader);
-            cam.set_position({ 0.f, 0.f, -max });
+            cam.set_position({ 0.f, 0.f, -1.5f * max });
             loading = false;
         }
 
@@ -126,7 +133,7 @@ int main(int argc, char* argv[])
 
         auto matrix = mul(
             translation_matrix(float3{ 0.f, 0.f, 0.f }),
-            scaling_matrix(float3{ s, s, s })
+            scaling_matrix(float3{ 1.f, 1.f, 1.f })
         );
 
         cam.update(app);
@@ -144,10 +151,11 @@ int main(int argc, char* argv[])
         shader->load_uniform(projection_matrix_location, cam.projection_matrix());
 
         for (auto&& vao : vaos)
-            vao.draw(mish);
+            vao.draw(diffuse);
 
         shader->end();
 
+        glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
 
         const auto flags = ImGuiWindowFlags_NoResize |

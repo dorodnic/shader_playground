@@ -23,5 +23,5 @@ void main(void){
 
 	surfaceNormal = (transformationMatrix * vec4(normal, 0.0)).xyz;
 	toLightVector = lightPosition - worldPosition.xyz;
-	toCameraVector = (cameraMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz - worldPosition.xyz;
+	toCameraVector = (inverse(cameraMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz - worldPosition.xyz;
 }

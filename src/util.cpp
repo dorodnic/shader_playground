@@ -3,6 +3,14 @@
 #include <fstream>
 #include <vector>
 
+std::string get_directory(const std::string& fname)
+{
+    size_t pos = fname.find_last_of("\\/");
+    return (std::string::npos == pos)
+        ? ""
+        : fname.substr(0, pos);
+}
+
 #define PI 3.14159265
 
 float to_rad(float deg)

@@ -38,13 +38,14 @@ float camera::clock() const
 
 void camera::update(const window& w)
 {
+    _up = { 0.f, 1.f, 0.f };
     auto dir = _target - _pos;
     auto size = length(dir);
     auto x_axis = cross(dir, _up);
     auto step = size * clock() / w.width();
     auto forward_step = dir * step;
     auto horizontal_step = x_axis * step;
-    _up = { 0.f, 1.f, 0.f };
+    //
 
     if (ImGui::IsKeyPressed('w') || ImGui::IsKeyPressed('W'))
     {

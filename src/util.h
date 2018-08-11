@@ -30,3 +30,4 @@ float4x4 identity_matrix();
 
 std::string read_all_text(const std::string& filename);
 bool file_exists(const std::string& name);
+std::string get_directory(const std::string& fname);

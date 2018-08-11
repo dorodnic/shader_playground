@@ -22,6 +22,11 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/mish.jpg
                   resources/white.png
                   resources/dragon.obj
+                  resources/earth.obj
+                  resources/Diffuse_2K.png
+                  resources/cat_diff.tga
+                  resources/cat.obj
+                  resources/cat.mtl
                   )
 
     foreach(item IN LISTS RESOURCES)

@@ -31,5 +31,8 @@ void main(void){
 	float brightness = max(nDotl, 0.2);
 	vec3 diffuse = brightness * lightColour;
 
-	out_color = vec4(finalSpec, 1.0) + vec4(diffuse, 1.0) * texture(textureSampler, textCoords);
+	vec2 tex_coords = textCoords;
+	tex_coords.y = 1.0 - tex_coords.y;
+
+	out_color = vec4(finalSpec, 1.0) + vec4(diffuse, 1.0) * texture(textureSampler, tex_coords);
 }

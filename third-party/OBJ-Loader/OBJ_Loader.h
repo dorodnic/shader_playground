@@ -440,6 +440,8 @@ namespace objl
             if (!file1.is_open())
                 return false;
 
+            this->Path = Path;
+
 			std::ifstream file(Path);
             std::string curline;
             int lines = 0;
@@ -728,6 +730,8 @@ namespace objl
 		std::vector<unsigned int> LoadedIndices;
 		// Loaded Material Objects
 		std::vector<Material> LoadedMaterials;
+
+        std::string Path;
 
 	private:
 		// Generate vertices from a list of positions, 
