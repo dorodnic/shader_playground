@@ -30,36 +30,41 @@ endif()
 add_custom_target(resources-target ALL DEPENDS ${RESOURCES})
 
 if(WIN32)
-	add_subdirectory(third-party/glfw)
-	list(APPEND DEPENDENCIES glfw3)
+    add_subdirectory(third-party/glfw)
+    list(APPEND DEPENDENCIES glfw3)
 else()
-	find_path(GLFW_INCLUDE_DIR NAMES GLFW/glfw3.h
-		PATHS /usr/X11R6/include
-			  /usr/include/X11
-			  /opt/graphics/OpenGL/include
-			  /opt/graphics/OpenGL/contrib/libglfw
-			  /usr/local/include
-			  /usr/include/GL
-			  /usr/include
-	)
-	find_library(GLFW_LIBRARIES NAMES glfw glfw3
-			PATHS /usr/lib64
-				  /usr/lib
-				  /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
-				  /usr/local/lib64
-				  /usr/local/lib
-				  /usr/local/lib/${CMAKE_LIBRARY_ARCHITECTURE}
-				  /usr/X11R6/lib
-	)
-	list(APPEND DEPENDENCIES ${GLFW_LIBRARIES})
-	include_directories(${GLFW_INCLUDE_DIR})
+    find_path(GLFW_INCLUDE_DIR NAMES GLFW/glfw3.h
+        PATHS /usr/X11R6/include
+              /usr/include/X11
+              /opt/graphics/OpenGL/include
+              /opt/graphics/OpenGL/contrib/libglfw
+              /usr/local/include
+              /usr/include/GL
+              /usr/include
+    )
+    find_library(GLFW_LIBRARIES NAMES glfw glfw3
+            PATHS /usr/lib64
+                  /usr/lib
+                  /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
+                  /usr/local/lib64
+                  /usr/local/lib
+                  /usr/local/lib/${CMAKE_LIBRARY_ARCHITECTURE}
+                  /usr/X11R6/lib
+    )
+    list(APPEND DEPENDENCIES ${GLFW_LIBRARIES})
+    include_directories(${GLFW_INCLUDE_DIR})
 endif()
 
 add_executable(voxel-playground 
-	src/voxel-playground.cpp 
+    src/voxel-playground.cpp 
     src/shader.cpp src/shader.h 
-	third-party/imgui/imgui.cpp 
-	third-party/imgui/imgui_impl_glfw.cpp
+    src/window.cpp src/window.h 
+    src/texture.cpp src/texture.h 
+    src/util.cpp src/util.h 
+    src/vao.cpp src/vao.h 
+    src/vbo.cpp src/vbo.h 
+    third-party/imgui/imgui.cpp 
+    third-party/imgui/imgui_impl_glfw.cpp
     third-party/easyloggingpp/easylogging++.cc
     ${RESOURCES}
     )
@@ -69,17 +74,17 @@ target_link_libraries(voxel-playground ${DEPENDENCIES})
 add_dependencies(voxel-playground resources-target)
 
 if(WIN32)
-	source_group("Source Files" FILES
-		third-party/voxel-playground.cpp)
+    source_group("Source Files" FILES
+        third-party/voxel-playground.cpp)
 
     source_group("3rd-Party" FILES
-		third-party/imgui/imgui.cpp 
-	    third-party/imgui/imgui_impl_glfw.cpp
+        third-party/imgui/imgui.cpp 
+        third-party/imgui/imgui_impl_glfw.cpp
         third-party/easyloggingpp/easylogging++.cc
     )
 
     source_group("Resources" FILES
-		${RESOURCES}
+        ${RESOURCES}
     )
 
     set_target_properties (glew PROPERTIES

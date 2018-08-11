@@ -1,40 +1,9 @@
 #include "shader.h"
+#include "util.h"
 
 #include <GL/glew.h>
 
 #include <easylogging++.h>
-
-struct str
-{
-    operator std::string() const
-    {
-        return _ss.str();
-    }
-
-    template<class T>
-    str& operator<<(T&& t)
-    {
-        _ss << t;
-        return *this;
-    }
-
-    std::ostringstream _ss;
-};
-
-
-inline std::string read_all_text(const std::string& filename)
-{
-    std::ifstream stream(filename, std::ios::in);
-    if (!stream.is_open())
-    {
-        throw std::runtime_error(str() << "File '" << filename << "' not found!");
-    }
-
-    auto buffer = std::vector<char>((std::istreambuf_iterator<char>(stream)),
-        std::istreambuf_iterator<char>());
-    buffer.push_back('\0');
-    return std::string(buffer.data());
-}
 
 shader::shader(const std::string& filename, shader_type type)
 {
