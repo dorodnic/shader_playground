@@ -48,6 +48,7 @@ public:
     void load_uniform(int location, float value);
     void load_uniform(int location, const float3& vec);
     void load_uniform(int location, bool value);
+    void load_uniform(int location, int value);
     void load_uniform(int location, const float4x4& matrix);
 
     void bind_attribute(int attr, const std::string& name);

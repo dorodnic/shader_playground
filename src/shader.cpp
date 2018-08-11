@@ -10,6 +10,11 @@ unsigned int shader_program::get_uniform_location(const std::string& name)
     return glGetUniformLocation(_id, name.c_str());
 }
 
+void shader_program::load_uniform(int location, int value)
+{
+    glUniform1i(location, value);
+}
+
 void shader_program::load_uniform(int location, float value)
 {
     glUniform1f(location, value);

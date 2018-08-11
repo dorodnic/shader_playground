@@ -106,11 +106,21 @@ int main(int argc, char* argv[])
     auto light_position_location = shader->get_uniform_location("lightPosition");
     auto light_colour_location = shader->get_uniform_location("lightColour");
 
+    auto diffuse_location = shader->get_uniform_location("diffuse");
     auto shine_location = shader->get_uniform_location("shineDamper");
     auto reflectivity_location = shader->get_uniform_location("reflectivity");
 
+    auto texture0_sampler_location = shader->get_uniform_location("textureSampler");
+    auto texture1_sampler_location = shader->get_uniform_location("textureDarkSampler");
+
+    shader->begin();
+    shader->load_uniform(texture0_sampler_location, 0);
+    shader->load_uniform(texture1_sampler_location, 1);
+    shader->end();
+
     auto shineDamper = 10.f;
     auto reflectivity = 1.f;
+    auto diffuse_level = 0.5f;
 
     camera cam(app);
     cam.look_at({ 0.f, 0.f, 0.f });
@@ -148,6 +158,7 @@ int main(int argc, char* argv[])
 
         shader->load_uniform(shine_location, shineDamper);
         shader->load_uniform(reflectivity_location, reflectivity);
+        shader->load_uniform(diffuse_location, diffuse_level);
 
         shader->load_uniform(light_position_location, l.position);
         shader->load_uniform(light_colour_location, l.colour);
@@ -195,7 +206,11 @@ int main(int argc, char* argv[])
 
             ImGui::Text("Reflectivity:");
             ImGui::PushItemWidth(-1);
-            ImGui::SliderFloat("##Reflect", &reflectivity, 0.f, 1.f);
+            ImGui::SliderFloat("##Reflect", &reflectivity, 0.f, 3.f);
+
+            ImGui::Text("Diffuse:");
+            ImGui::PushItemWidth(-1);
+            ImGui::SliderFloat("##Diffuse", &diffuse_level, 0.f, 1.f);
         }
 
         ImGui::End();
