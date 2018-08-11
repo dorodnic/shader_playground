@@ -63,6 +63,7 @@ add_executable(voxel-playground
     src/util.cpp src/util.h 
     src/vao.cpp src/vao.h 
     src/vbo.cpp src/vbo.h 
+    src/camera.cpp src/camera.h 
     third-party/imgui/imgui.cpp 
     third-party/imgui/imgui_impl_glfw.cpp
     third-party/easyloggingpp/easylogging++.cc

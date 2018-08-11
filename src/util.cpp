@@ -3,6 +3,32 @@
 #include <fstream>
 #include <vector>
 
+#define PI 3.14159265
+
+float to_rad(float deg)
+{
+    return deg * PI / 180;
+}
+
+float4x4 create_projection_matrix(float width, float height, float fov, float n, float f)
+{
+    auto ar = width / height;
+    auto y_scale = (1.f / std::tanf(to_rad(fov / 2.f))) * ar;
+    auto x_scale = y_scale / ar;
+    auto length = f - n;
+
+    float4x4 res;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            res[0][0] = 0.f;
+    res[0][0] = x_scale;
+    res[1][1] = y_scale;
+    res[2][2] = -((f + n) / length);
+    res[2][3] = -1;
+    res[3][2] = -((2 * n * f) / length);
+    return res;
+}
+
 float4x4 identity_matrix()
 {
     float4x4 data;
