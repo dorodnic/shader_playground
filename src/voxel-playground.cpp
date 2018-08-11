@@ -1,9 +1,3 @@
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 
 #include "shader.h"
@@ -32,7 +26,7 @@ int main(int argc, char* argv[])
         { 1, 1 },
         { 1, 0 }
     };
-    triangle index[] = {
+    int3 index[] = {
         { 0, 1, 3 },
         { 3, 1, 2}
     };
@@ -44,8 +38,17 @@ int main(int argc, char* argv[])
 
     auto shader = shader_program::load("resources/shaders/vertex.glsl", 
                                        "resources/shaders/fragment.glsl");
-    glBindAttribLocation(shader->get_id(), 0, "position");
-    glBindAttribLocation(shader->get_id(), 1, "textureCoords");
+    shader->bind_attribute(0, "position");
+    shader->bind_attribute(1, "textureCoords");
+    auto transformation_matrix_location = shader->get_uniform_location("transformationMatrix");
+
+    auto matrix = mul(
+        translation_matrix(float3{ 1.f, 1.f, 1.f }),
+        scaling_matrix(float3{ 0.3f, 1.f, 1.f })
+        );
+    shader->begin();
+    shader->load_uniform(transformation_matrix_location, matrix);
+    shader->end();
 
     while (app)
     {

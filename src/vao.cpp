@@ -3,7 +3,7 @@
 #include <easylogging++.h>
 
 vao::vao(float3* vert, float2* uvs, int vert_count,
-         triangle* indx, int indx_count)
+         int3* indx, int indx_count)
     : _vertexes(vbo_type::array_buffer),
       _uvs(vbo_type::array_buffer),
       _indexes(vbo_type::element_array_buffer)

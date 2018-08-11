@@ -39,11 +39,11 @@ void vbo::upload(int attribute, float* xyz, int size, int count)
     unbind();
 }
 
-void vbo::upload(triangle* indx, int count)
+void vbo::upload(int3* indx, int count)
 {
     assert(_type == vbo_type::element_array_buffer);
     bind();
-    glBufferData(convert_type(_type), count * sizeof(triangle), indx, GL_STATIC_DRAW);
+    glBufferData(convert_type(_type), count * sizeof(int3), indx, GL_STATIC_DRAW);
     _size = count;
 }
 
@@ -58,7 +58,7 @@ void vbo::draw_triangles()
 void vbo::draw_indexed_triangles()
 {
     assert(_type == vbo_type::element_array_buffer);
-    glDrawElements(GL_TRIANGLES, _size * (sizeof(triangle) / sizeof(int)), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, _size * (sizeof(int3) / sizeof(int)), GL_UNSIGNED_INT, 0);
 }
 
 vbo::~vbo()

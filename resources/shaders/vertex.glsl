@@ -5,6 +5,8 @@ in vec2 textureCoords;
 
 out vec2 textCoords;
 
+uniform mat4 transformationMatrix;
+
 void main(void){
 	gl_Position = vec4(position.xyz, 1.0);
 	textCoords = textureCoords;

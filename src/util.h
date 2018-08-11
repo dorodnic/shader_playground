@@ -4,20 +4,10 @@
 
 #include <sstream>
 
-struct float3
-{
-    float x, y, z;
-};
+#include <linalg.h>
 
-struct float2
-{
-    float u, v;
-};
-
-struct triangle
-{
-    int idx[3];
-};
+using namespace linalg::aliases;
+using namespace linalg;
 
 struct str
 {

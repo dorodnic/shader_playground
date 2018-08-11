@@ -5,6 +5,36 @@
 
 #include <easylogging++.h>
 
+unsigned int shader_program::get_uniform_location(const std::string& name)
+{
+    return glGetUniformLocation(_id, name.c_str());
+}
+
+void shader_program::load_uniform(int location, float value)
+{
+    glUniform1f(location, value);
+}
+
+void shader_program::load_uniform(int location, bool value)
+{
+    load_uniform(location, value ? 1.f : 0.f);
+}
+
+void shader_program::load_uniform(int location, const float3& vec)
+{
+    glUniform3f(location, vec.x, vec.y, vec.z);
+}
+
+void shader_program::load_uniform(int location, const float4x4& matrix)
+{
+    glUniformMatrix4fv(location, 1, GL_FALSE, (float*)&matrix);
+}
+
+void shader_program::bind_attribute(int attr, const std::string& name)
+{
+    glBindAttribLocation(_id, attr, name.c_str());
+}
+
 shader::shader(const std::string& filename, shader_type type)
 {
     auto lambda = [&](){

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <GL/glew.h>
+#include "util.h"
+
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -40,6 +43,14 @@ public:
                             const std::string& fragment_shader);
                               
     unsigned int get_id() const { return _id; }
+
+    unsigned int get_uniform_location(const std::string& name);
+    void load_uniform(int location, float value);
+    void load_uniform(int location, const float3& vec);
+    void load_uniform(int location, bool value);
+    void load_uniform(int location, const float4x4& matrix);
+
+    void bind_attribute(int attr, const std::string& name);
 
 private:
     std::vector<const shader*> _shaders;

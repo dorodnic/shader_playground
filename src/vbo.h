@@ -16,7 +16,7 @@ public:
     ~vbo();
 
     void upload(int attribute, float* xyz, int size, int count);
-    void upload(triangle* indx, int count);
+    void upload(int3* indx, int count);
 
     void draw_triangles();
     void draw_indexed_triangles();

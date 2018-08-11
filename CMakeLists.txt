@@ -69,7 +69,7 @@ add_executable(voxel-playground
     ${RESOURCES}
     )
 include_directories(voxel-playground third-party/imgui third-party/glew/include 
-                    third-party/easyloggingpp third-party)
+                    third-party/easyloggingpp third-party third-party/linalg)
 target_link_libraries(voxel-playground ${DEPENDENCIES})
 add_dependencies(voxel-playground resources-target)
 

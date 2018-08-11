@@ -3,6 +3,15 @@
 #include <fstream>
 #include <vector>
 
+float4x4 identity_matrix()
+{
+    float4x4 data;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            data[i][j] = (i == j) ? 1.f : 0.f;
+    return data;
+}
+
 std::string read_all_text(const std::string& filename)
 {
     if (!file_exists(filename))

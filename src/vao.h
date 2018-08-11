@@ -9,7 +9,7 @@ class vao
 {
 public:
     vao(float3* vert, float2* uvs, int vert_count,
-        triangle* indx, int indx_count);
+        int3* indx, int indx_count);
     ~vao();
     void bind();
     void unbind();
