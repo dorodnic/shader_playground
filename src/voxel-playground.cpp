@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
     std::vector<vao> vaos;
     float max = 1.f;
     float progress = 0.f;
+    int vertex_count = 0;
 
     moodycamel::ReaderWriterQueue<objl::Loader> queue;
 
@@ -55,6 +56,7 @@ int main(int argc, char* argv[])
                 max = std::max(v.Position.X, max);
                 max = std::max(v.Position.Y, max);
                 max = std::max(v.Position.Z, max);
+                vertex_count++;
             }
 
             std::vector<float3> normals;
@@ -155,6 +157,9 @@ int main(int argc, char* argv[])
         ImGui::SetNextWindowSize({ 250, static_cast<float>(app.height()) });
 
         ImGui::Begin("Control Panel", nullptr, flags);
+
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text("Vertex Count: %d", vertex_count);
 
         if (loading)
         {

@@ -80,6 +80,7 @@ window::window(int w, int h, const char* title)
     // Register for UI-controller events
     glfwSetWindowUserPointer(_window, this);
 
+    glfwSwapInterval(0);
 
     glfwSetCursorPosCallback(_window, [](GLFWwindow* w, double cx, double cy)
     {
