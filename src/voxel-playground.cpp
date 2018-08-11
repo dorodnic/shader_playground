@@ -16,56 +16,95 @@ struct float3
     float x, y, z;
 };
 
+struct triangle
+{
+    int idx[3];
+};
+
+enum class vbo_type
+{
+    array_buffer,
+    element_array_buffer,
+};
+
 class vbo
 {
 public:
-    vbo(int attribute = 0);
+    vbo(vbo_type type = vbo_type::array_buffer);
     ~vbo();
-    void upload(float3* xyz, int count);
-    void draw_triangles();
 
-private:
+    void upload(int attribute, float3* xyz, int count);
+    void upload(triangle* indx, int count);
+
+    void draw_triangles();
+    void draw_indexed_triangles();
+
     void bind();
     void unbind();
 
+private:
+    static int convert_type(vbo_type type);
+
     uint32_t _id;
-    uint32_t _attribute;
     uint32_t _size = 0;
+    vbo_type _type;
 };
 
-vbo::vbo(int attribute) : _attribute(attribute)
+int vbo::convert_type(vbo_type type)
+{
+    switch (type) {
+    case vbo_type::array_buffer: return GL_ARRAY_BUFFER;
+    case vbo_type::element_array_buffer: return GL_ELEMENT_ARRAY_BUFFER;
+    default: throw std::runtime_error("Not supported VBO type!");
+    }
+}
+
+vbo::vbo(vbo_type type)
+    : _type(type)
 {
     glGenBuffers(1, &_id);
 }
 
 void vbo::bind()
 {
-    glBindBuffer(GL_ARRAY_BUFFER, _id);
+    glBindBuffer(convert_type(_type), _id);
 }
 
 void vbo::unbind()
 {
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(convert_type(_type), 0);
 }
 
-void vbo::upload(float3* xyz, int count)
+void vbo::upload(int attribute, float3* xyz, int count)
 {
+    assert(_type == vbo_type::array_buffer);
     bind();
-    glEnableVertexAttribArray(_attribute);
-    glBufferData(GL_ARRAY_BUFFER, count * sizeof(float3), xyz, GL_STATIC_DRAW);
-    glVertexAttribPointer(_attribute, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glDisableVertexAttribArray(_attribute);
+    glBufferData(convert_type(_type), count * sizeof(float3), xyz, GL_STATIC_DRAW);
+    glVertexAttribPointer(attribute, 3, GL_FLOAT, GL_FALSE, 0, 0);
     _size = count;
     unbind();
 }
 
+void vbo::upload(triangle* indx, int count)
+{
+    assert(_type == vbo_type::element_array_buffer);
+    bind();
+    glBufferData(convert_type(_type), count * sizeof(triangle), indx, GL_STATIC_DRAW);
+    _size = count;
+}
+
 void vbo::draw_triangles()
 {
+    assert(_type == vbo_type::array_buffer);
     bind();
-    glEnableVertexAttribArray(_attribute);
     glDrawArrays(GL_TRIANGLES, 0, _size);
-    glDisableVertexAttribArray(_attribute);
     unbind();
+}
+
+void vbo::draw_indexed_triangles()
+{
+    assert(_type == vbo_type::element_array_buffer);
+    glDrawElements(GL_TRIANGLES, _size * (sizeof(triangle) / sizeof(int)), GL_UNSIGNED_INT, 0);
 }
 
 vbo::~vbo()
@@ -76,7 +115,8 @@ vbo::~vbo()
 class vao
 {
 public:
-    vao(float3* xyz, int count);
+    vao(float3* vert, int vert_count,
+        triangle* indx, int indx_count);
     ~vao();
     void bind();
     void unbind();
@@ -85,13 +125,18 @@ public:
 private:
     uint32_t _id;
     vbo _vertexes;
+    vbo _indexes;
 };
 
-vao::vao(float3* xyz, int count)
+vao::vao(float3* vert, int vert_count,
+         triangle* indx, int indx_count)
+    : _vertexes(vbo_type::array_buffer),
+      _indexes(vbo_type::element_array_buffer)
 {
     glGenVertexArrays(1, &_id);
     bind();
-    _vertexes.upload(xyz, count);
+    _indexes.upload(indx, indx_count);
+    _vertexes.upload(0, vert, vert_count);
     unbind();
 }
 
@@ -113,7 +158,11 @@ void vao::unbind()
 void vao::draw()
 {
     bind();
-    _vertexes.draw_triangles();
+
+    glEnableVertexAttribArray(0);
+    _indexes.draw_indexed_triangles();
+    glDisableVertexAttribArray(0);
+
     unbind();
 }
 
@@ -148,15 +197,18 @@ int main(int argc, char* argv[])
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(opengl_error_callback, 0);
 
-    float3 triangles[] = {
+    float3 vertex[] = {
         { -0.5, 0.5, 0.f },
         { -0.5, -0.5, 0.f },
         { 0.5, -0.5, 0.f },
-        { 0.5, -0.5, 0.f },
         { 0.5, 0.5, 0.f },
-        { -0.5, 0.5, 0.f }
     };
-    vao obj(triangles, sizeof(triangles) / sizeof(triangles[0]));
+    triangle index[] = {
+        { 0, 1, 3 },
+        { 3, 1, 2}
+    };
+    vao obj(vertex, sizeof(vertex) / sizeof(vertex[0]),
+            index, sizeof(index) / sizeof(index[0]));
 
     auto shader = shader_program::load("resources/shaders/vertex.glsl", 
                                        "resources/shaders/fragment.glsl");
@@ -165,9 +217,10 @@ int main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
+
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
-        //glViewport(0, 0, w, h);
+        glViewport(0, 0, w, h);
 
         //glMatrixMode(GL_PROJECTION);
         //glLoadIdentity();
@@ -193,8 +246,8 @@ int main(int argc, char* argv[])
         glfwGetWindowSize(window, &w, &h);
 
 
-        //glClearColor(1, 0, 0, 1);
-        //glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(1, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
 
 
         shader->begin();
