@@ -4,9 +4,12 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 
-#pragma comment(lib, "opengl32.lib")
-
 #include <iostream>
+
+#include "shader.h"
+
+#include <easylogging++.h>
+INITIALIZE_EASYLOGGINGPP
 
 int main()
 {

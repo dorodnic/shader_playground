@@ -5,8 +5,11 @@ project(voxel_playground)
 find_package(OpenGL REQUIRED)
 list(APPEND DEPENDENCIES ${OPENGL_LIBRARIES})
 
+add_subdirectory(third-party/glew/build/cmake)
+list(APPEND DEPENDENCIES glew_s)
+
 if(WIN32)
-	add_subdirectory(glfw)
+	add_subdirectory(third-party/glfw)
 	list(APPEND DEPENDENCIES glfw3)
 else()
 	find_path(GLFW_INCLUDE_DIR NAMES GLFW/glfw3.h
@@ -32,13 +35,35 @@ else()
 endif()
 
 add_executable(voxel-playground 
-	voxel-playground.cpp 
-	imgui/imgui.cpp 
-	imgui/imgui_impl_glfw.cpp)
-include_directories(voxel-playground imgui)
+	src/voxel-playground.cpp 
+    src/shader.cpp src/shader.h 
+	third-party/imgui/imgui.cpp 
+	third-party/imgui/imgui_impl_glfw.cpp
+    third-party/easyloggingpp/easylogging++.cc
+    )
+include_directories(voxel-playground third-party/imgui third-party/glew/include third-party/easyloggingpp)
 target_link_libraries(voxel-playground ${DEPENDENCIES})
 
 if(WIN32)
 	source_group("Source Files" FILES
-		voxel-playground.cpp)
+		third-party/voxel-playground.cpp)
+
+    source_group("3rd-Party" FILES
+		third-party/imgui/imgui.cpp 
+	    third-party/imgui/imgui_impl_glfw.cpp
+        third-party/easyloggingpp/easylogging++.cc
+    )
+
+    set_target_properties (glew PROPERTIES
+        FOLDER Third-Party
+    )
+    set_target_properties (glew_s PROPERTIES
+        FOLDER Third-Party
+    )
+    set_target_properties (glewinfo PROPERTIES
+        FOLDER Third-Party
+    )
+    set_target_properties (glfw3 PROPERTIES
+        FOLDER Third-Party
+    )
 endif()

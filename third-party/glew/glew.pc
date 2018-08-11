@@ -1,6 +1,6 @@
-prefix=C:/Program Files (x86)/Playground
+prefix=C:/Program Files (x86)/voxel_playground
 exec_prefix=${prefix}
-libdir=C:/Program Files (x86)/Playground/lib
+libdir=C:/Program Files (x86)/voxel_playground/lib
 includedir=${prefix}/include
 
 Name: glew
