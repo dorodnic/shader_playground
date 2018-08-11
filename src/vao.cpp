@@ -2,7 +2,7 @@
 
 #include <easylogging++.h>
 
-vao::vao(float3* vert, float2* uvs, int vert_count,
+vao::vao(float3* vert, float2* uvs, float3* normals, int vert_count,
          int3* indx, int indx_count)
     : _vertexes(vbo_type::array_buffer),
       _uvs(vbo_type::array_buffer),
@@ -12,6 +12,7 @@ vao::vao(float3* vert, float2* uvs, int vert_count,
     bind();
     _indexes.upload(indx, indx_count);
     _vertexes.upload(0, (float*)vert, 3, vert_count);
+    _normals.upload(2, (float*)normals, 3, vert_count);
     _uvs.upload(1, (float*)uvs, 2, vert_count);
     unbind();
 }
@@ -20,7 +21,8 @@ vao::vao(vao&& other)
     : _id(other._id), 
       _indexes(std::move(other._indexes)),
       _vertexes(std::move(other._vertexes)),
-      _uvs(std::move(other._uvs))
+      _uvs(std::move(other._uvs)),
+      _normals(std::move(other._normals))
 {
     other._id = 0;
 }
@@ -46,12 +48,14 @@ void vao::draw(const texture& tex)
 
     glEnableVertexAttribArray(0); // vertex
     glEnableVertexAttribArray(1); // uv
+    glEnableVertexAttribArray(2); // normals
     glActiveTexture(GL_TEXTURE0);
     tex.bind();
     _indexes.draw_indexed_triangles();
     tex.unbind();
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
 
     unbind();
 }

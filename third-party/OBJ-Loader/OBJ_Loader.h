@@ -17,6 +17,8 @@
 // Math.h - STD math Library
 #include <math.h>
 
+#include <functional>
+
 // Print progress to console while loading (large models)
 //#define OBJL_CONSOLE_OUTPUT
 
@@ -428,17 +430,20 @@ namespace objl
 		//
 		// If the file is unable to be found
 		// or unable to be loaded return false
-		bool LoadFile(std::string Path)
+        bool LoadFile(std::string Path, std::function<void(float)> progress = [](float) {})
 		{
 			// If the file is not an .obj file return false
 			if (Path.substr(Path.size() - 4, 4) != ".obj")
 				return false;
 
+            std::ifstream file1(Path);
+            if (!file1.is_open())
+                return false;
 
 			std::ifstream file(Path);
-
-			if (!file.is_open())
-				return false;
+            std::string curline;
+            int lines = 0;
+            while (std::getline(file1, curline)) lines++;
 
 			LoadedMeshes.clear();
 			LoadedVertices.clear();
@@ -463,9 +468,12 @@ namespace objl
 			unsigned int outputIndicator = outputEveryNth;
 			#endif
 
-			std::string curline;
+            int line = 0;
 			while (std::getline(file, curline))
 			{
+                progress((float)line / lines);
+                line++;
+
 				#ifdef OBJL_CONSOLE_OUTPUT
 				if ((outputIndicator = ((outputIndicator + 1) % outputEveryNth)) == 1)
 				{

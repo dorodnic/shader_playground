@@ -8,7 +8,7 @@
 class vao
 {
 public:
-    vao(float3* vert, float2* uvs, int vert_count,
+    vao(float3* vert, float2* uvs, float3* normals, int vert_count,
         int3* indx, int indx_count);
     ~vao();
     void bind();
@@ -22,6 +22,7 @@ private:
 
     uint32_t _id;
     vbo _vertexes;
+    vbo _normals;
     vbo _indexes;
     vbo _uvs;
 };

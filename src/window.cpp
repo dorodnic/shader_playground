@@ -50,7 +50,7 @@ window::operator bool()
     glViewport(0, 0, _w, _h);
     glfwGetWindowSize(_window, &_w, &_h);
 
-    ImGui_ImplGlfw_NewFrame();
+    ImGui_ImplGlfw_NewFrame(1.f);
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

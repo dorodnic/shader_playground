@@ -20,7 +20,8 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(RESOURCES resources/shaders/fragment.glsl
                   resources/shaders/vertex.glsl
                   resources/mish.jpg
-                  resources/house.obj
+                  resources/white.png
+                  resources/dragon.obj
                   )
 
     foreach(item IN LISTS RESOURCES)
@@ -69,12 +70,14 @@ add_executable(voxel-playground
     src/vbo.cpp src/vbo.h 
     src/camera.cpp src/camera.h 
     third-party/imgui/imgui.cpp 
+    third-party/imgui/imgui_draw.cpp 
     third-party/imgui/imgui_impl_glfw.cpp
     third-party/easyloggingpp/easylogging++.cc
     ${SHADERS}
     )
 include_directories(voxel-playground third-party/imgui third-party/glew/include 
-                    third-party/easyloggingpp third-party third-party/linalg third-party/OBJ-Loader)
+                    third-party/easyloggingpp third-party third-party/readerwriterqueue
+                    third-party/linalg third-party/OBJ-Loader)
 target_link_libraries(voxel-playground ${DEPENDENCIES})
 add_dependencies(voxel-playground resources-target)
 
@@ -85,6 +88,7 @@ if(WIN32)
     source_group("3rd-Party" FILES
         third-party/imgui/imgui.cpp 
         third-party/imgui/imgui_impl_glfw.cpp
+        third-party/imgui/imgui_draw.cpp 
         third-party/easyloggingpp/easylogging++.cc
     )
 

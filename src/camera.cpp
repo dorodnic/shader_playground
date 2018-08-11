@@ -67,19 +67,22 @@ void camera::update(const window& w)
         _target -= horizontal_step;
     }
 
-    arcball_camera_update(
-        (float*)&_pos, (float*)&_target, (float*)&_up, (float*)&_view,
-        clock(),
-        0.2f, // zoom per tick
-        -size / w.width(), // pan speed
-        3.0f, // rotation multiplier
-        w.width(), w.height(), // screen (window) size
-        static_cast<int>(_prev_mouse.x), static_cast<int>(w.get_mouse().x),
-        static_cast<int>(_prev_mouse.y), static_cast<int>(w.get_mouse().y),
-        (ImGui::GetIO().MouseDown[2] || ImGui::GetIO().MouseDown[1]) ? 1 : 0,
-        ImGui::GetIO().MouseDown[0] ? 1 : 0,
-        w.get_mouse().mouse_wheel * size * 0.2f,
-        0);
+    if (w.get_mouse().x > 250)
+    {
+        arcball_camera_update(
+            (float*)&_pos, (float*)&_target, (float*)&_up, (float*)&_view,
+            clock(),
+            0.2f, // zoom per tick
+            -size / w.width(), // pan speed
+            3.0f, // rotation multiplier
+            w.width(), w.height(), // screen (window) size
+            static_cast<int>(_prev_mouse.x), static_cast<int>(w.get_mouse().x),
+            static_cast<int>(_prev_mouse.y), static_cast<int>(w.get_mouse().y),
+            (ImGui::GetIO().MouseDown[2] || ImGui::GetIO().MouseDown[1]) ? 1 : 0,
+            ImGui::GetIO().MouseDown[0] ? 1 : 0,
+            w.get_mouse().mouse_wheel * size * 0.2f,
+            0);
+    }
 
     _prev_mouse = w.get_mouse();
 }
