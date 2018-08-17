@@ -24,9 +24,9 @@ void main(void){
 	vec2 tex_coords = textCoords;
 	tex_coords.y = 1.0 - tex_coords.y;
 
-	vec4 normalMapValue = 2.0 * texture(textureNormalSampler, tex_coords) - 1.0;
+	//vec4 normalMapValue = 2.0 * texture(textureNormalSampler, tex_coords) - 1.0;
 
-	vec3 unitNormal = normalize(normalMapValue.xyz);
+	vec3 unitNormal = normalize(surfaceNormal.xyz);
 	vec3 unitLight = normalize(toLightVector);
 	vec3 unitCamera = normalize(toCameraVector);
 	vec3 lightDir = -unitLight;

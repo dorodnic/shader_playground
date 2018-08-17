@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     window app(1280, 720, "Voxel Playground");
 
     std::vector<model> models;
-    models.emplace_back("Earth_Cube.002");
+    models.emplace_back("*");
 
     float progress = 0.f;
 
@@ -36,10 +36,10 @@ int main(int argc, char* argv[])
     texture normal_map;
     texture ocean_mask;
 
-    diffuse.upload("resources/Diffuse_2K.png");
-    diffuse2.upload("resources/Night_lights_2K.png");
-    normal_map.upload("resources/Normal_2K.png");
-    ocean_mask.upload("resources/Ocean_Mask_2K.png");
+    diffuse.upload("resources/mish.jpg");
+    diffuse2.upload("resources/mish_dark.jpg");
+    normal_map.upload("resources/normal_map.png");
+    ocean_mask.upload("resources/mish.jpg");
 
     light l;
     l.position = { 100.f, 0.f, -20.f };
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     camera cam(app);
     cam.look_at({ 0.f, 0.f, 0.f });
 
-    loader earth("resources/earth.obj");
+    loader earth("resources/cube.obj");
     bool loading = true;
 
     while (app)
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
             while (light_angle > 2 * 3.14) light_angle -= 2 * 3.14;
         }
 
-        l.position = { 2.f * std::sinf(-light_angle), 0.f, 2.f * std::cosf(-light_angle) };
+        l.position = { 2.f * std::sinf(-light_angle), 1.f, 2.f * std::cosf(-light_angle) };
         l.colour = { s, t, s };
 
         auto matrix = mul(

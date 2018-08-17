@@ -14,6 +14,8 @@ struct obj_mesh
     std::vector<float3> normals;
     std::vector<float2> uvs;
     std::vector<float3> tangents;
+
+    void calculate_tangents();
 };
 
 typedef std::vector<obj_mesh> obj_file;

@@ -18,6 +18,7 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(RESOURCES resources/shaders/fragment.glsl
                   resources/shaders/vertex.glsl
                   resources/mish.jpg
+                  resources/mish_dark.jpg
                   resources/white.png
                   resources/dragon.obj
                   resources/earth.obj
@@ -28,6 +29,8 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/cat_diff.tga
                   resources/cat.obj
                   resources/cat.mtl
+                  resources/cube.obj
+                  resources/normal_map.png
                   )
 
     foreach(item IN LISTS RESOURCES)

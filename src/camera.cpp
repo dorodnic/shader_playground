@@ -81,7 +81,7 @@ void camera::update(const window& w)
             static_cast<int>(_prev_mouse.y), static_cast<int>(w.get_mouse().y),
             (ImGui::GetIO().MouseDown[2] || ImGui::GetIO().MouseDown[1]) ? 1 : 0,
             ImGui::GetIO().MouseDown[0] ? 1 : 0,
-            w.get_mouse().mouse_wheel * size * 0.2f,
+            w.get_mouse().mouse_wheel,
             0);
     }
 
