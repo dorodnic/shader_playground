@@ -29,7 +29,7 @@ void vbo::unbind()
     glBindBuffer(convert_type(_type), 0);
 }
 
-void vbo::upload(int attribute, float* xyz, int size, int count)
+void vbo::upload(int attribute, const float* xyz, int size, int count)
 {
     assert(_type == vbo_type::array_buffer);
     bind();
@@ -39,7 +39,7 @@ void vbo::upload(int attribute, float* xyz, int size, int count)
     unbind();
 }
 
-void vbo::upload(int3* indx, int count)
+void vbo::upload(const int3* indx, int count)
 {
     assert(_type == vbo_type::element_array_buffer);
     bind();

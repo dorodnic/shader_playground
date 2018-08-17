@@ -8,8 +8,8 @@
 class vao
 {
 public:
-    vao(float3* vert, float2* uvs, float3* normals, int vert_count,
-        int3* indx, int indx_count);
+    vao(const float3* vert, const float2* uvs, const float3* normals, 
+        const float3* tangents, int vert_count, const int3* indx, int indx_count);
     ~vao();
     void bind();
     void unbind();
@@ -21,8 +21,5 @@ private:
     vao(const vao& other) = delete;
 
     uint32_t _id;
-    vbo _vertexes;
-    vbo _normals;
-    vbo _indexes;
-    vbo _uvs;
+    vbo _vertexes, _normals, _indexes, _uvs, _tangents;
 };

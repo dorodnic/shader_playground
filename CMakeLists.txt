@@ -23,6 +23,8 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/earth.obj
                   resources/Diffuse_2K.png
                   resources/Night_lights_2K.png
+                  resources/Normal_2K.png
+                  resources/Ocean_Mask_2K.png
                   resources/cat_diff.tga
                   resources/cat.obj
                   resources/cat.mtl
@@ -73,6 +75,8 @@ add_executable(voxel-playground
     src/vao.cpp src/vao.h 
     src/vbo.cpp src/vbo.h 
     src/camera.cpp src/camera.h 
+    src/model.cpp src/model.h
+    src/loader.cpp src/loader.h
     third-party/imgui/imgui.cpp 
     third-party/imgui/imgui_draw.cpp 
     third-party/imgui/imgui_impl_glfw.cpp

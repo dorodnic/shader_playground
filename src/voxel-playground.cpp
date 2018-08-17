@@ -6,15 +6,13 @@
 #include "texture.h"
 #include "vao.h"
 #include "camera.h"
+#include "model.h"
+#include "loader.h"
 
 #include <easylogging++.h>
 INITIALIZE_EASYLOGGINGPP
 
 #include <imgui.h>
-
-#include <OBJ_Loader.h>
-
-#include <readerwriterqueue.h>
 
 struct light
 {
@@ -28,66 +26,20 @@ int main(int argc, char* argv[])
 
     window app(1280, 720, "Voxel Playground");
 
-    std::vector<vao> vaos;
-    float max = 1.f;
+    std::vector<model> models;
+    models.emplace_back("Earth_Cube.002");
+
     float progress = 0.f;
-    int vertex_count = 0;
 
     texture diffuse;
-    diffuse.upload("resources/Diffuse_2K.png");
     texture diffuse2;
+    texture normal_map;
+    texture ocean_mask;
+
+    diffuse.upload("resources/Diffuse_2K.png");
     diffuse2.upload("resources/Night_lights_2K.png");
-
-    moodycamel::ReaderWriterQueue<objl::Loader> queue;
-
-    std::thread loader_thread([&]() {
-        objl::Loader loader;
-        bool loadout = loader.LoadFile("resources/earth.obj",
-            [&](float p) { progress = p; });
-        LOG(INFO) << "Done loading model";
-        queue.enqueue(std::move(loader));
-    });
-
-    auto read_from_loader = [&](const objl::Loader& loader) {
-        for (int i = 0; i < loader.LoadedMeshes.size(); i++)
-        {
-            objl::Mesh curMesh = loader.LoadedMeshes[i];
-            LOG(INFO) << "Loaded mesh " << curMesh.MeshName;
-
-            if (curMesh.MeshMaterial.map_Kd != "")
-            {
-                auto dir = get_directory(loader.Path);
-                auto diffuse_path = curMesh.MeshMaterial.map_Kd;
-                if (dir != "") diffuse_path = dir + "/" + diffuse_path;
-
-                diffuse.upload(diffuse_path);
-            }
-
-            std::vector<float3> positions;
-            for (auto&& v : curMesh.Vertices)
-            {
-                positions.emplace_back(v.Position.X, v.Position.Y, v.Position.Z);
-                max = std::max(v.Position.X, max);
-                max = std::max(v.Position.Y, max);
-                max = std::max(v.Position.Z, max);
-                vertex_count++;
-            }
-
-            std::vector<float3> normals;
-            for (auto&& v : curMesh.Vertices)
-                normals.emplace_back(v.Normal.X, v.Normal.Y, v.Normal.Z);
-            std::vector<float2> uvs;
-            for (auto&& v : curMesh.Vertices)
-                uvs.emplace_back(v.TextureCoordinate.X, v.TextureCoordinate.Y);
-            std::vector<int3> idx;
-            for (int i = 0; i < curMesh.Indices.size(); i += 3)
-                idx.emplace_back(curMesh.Indices[i], curMesh.Indices[i + 1], curMesh.Indices[i + 2]);
-
-            vao v(positions.data(), uvs.data(), normals.data(),
-                positions.size(), idx.data(), idx.size());
-            vaos.push_back(std::move(v));
-        }
-    };
+    normal_map.upload("resources/Normal_2K.png");
+    ocean_mask.upload("resources/Ocean_Mask_2K.png");
 
     light l;
     l.position = { 100.f, 0.f, -20.f };
@@ -98,6 +50,7 @@ int main(int argc, char* argv[])
     shader->bind_attribute(0, "position");
     shader->bind_attribute(1, "textureCoords");
     shader->bind_attribute(2, "normal");
+    shader->bind_attribute(3, "tangent");
 
     auto transformation_matrix_location = shader->get_uniform_location("transformationMatrix");
     auto projection_matrix_location = shader->get_uniform_location("projectionMatrix");
@@ -112,19 +65,26 @@ int main(int argc, char* argv[])
 
     auto texture0_sampler_location = shader->get_uniform_location("textureSampler");
     auto texture1_sampler_location = shader->get_uniform_location("textureDarkSampler");
+    auto texture_normal_sampler_location = shader->get_uniform_location("textureNormalSampler");
+    auto texture_mask_sampler_location = shader->get_uniform_location("textureMaskSampler");
 
     shader->begin();
     shader->load_uniform(texture0_sampler_location, 0);
     shader->load_uniform(texture1_sampler_location, 1);
+    shader->load_uniform(texture_normal_sampler_location, 2);
+    shader->load_uniform(texture_mask_sampler_location, 3);
     shader->end();
 
     auto shineDamper = 10.f;
     auto reflectivity = 1.f;
     auto diffuse_level = 0.5f;
+    auto light_angle = 0.f;
+    bool rotate_light = true;
 
     camera cam(app);
     cam.look_at({ 0.f, 0.f, 0.f });
 
+    loader earth("resources/earth.obj");
     bool loading = true;
 
     while (app)
@@ -133,18 +93,23 @@ int main(int argc, char* argv[])
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
-        objl::Loader loader;
-        if (queue.try_dequeue(loader))
+        if (earth.ready() && loading)
         {
-            read_from_loader(loader);
-            cam.set_position({ 0.f, 0.f, -1.5f * max });
+            for (auto& model : models)
+                model.create(earth.get());
             loading = false;
         }
 
         auto s = std::abs(std::sinf(cam.clock())) * 0.2f + 0.8f;
         auto t = std::abs(std::sinf(cam.clock() + 5)) * 0.2f + 0.8f;
 
-        l.position = { 2.f * max * std::sinf(-cam.clock()), 0.f, 2.f * max * std::cosf(-cam.clock()) };
+        if (rotate_light)
+        {
+            light_angle = cam.clock();
+            while (light_angle > 2 * 3.14) light_angle -= 2 * 3.14;
+        }
+
+        l.position = { 2.f * std::sinf(-light_angle), 0.f, 2.f * std::cosf(-light_angle) };
         l.colour = { s, t, s };
 
         auto matrix = mul(
@@ -169,10 +134,16 @@ int main(int argc, char* argv[])
 
         diffuse.bind(0);
         diffuse2.bind(1);
-        for (auto&& vao : vaos)
+        normal_map.bind(2);
+        ocean_mask.bind(3);
+        
+        for (auto& model : models)
         {
-            vao.draw();
+            model.render();
         }
+
+        ocean_mask.unbind();
+        normal_map.unbind();
         diffuse2.unbind();
         diffuse.unbind();
 
@@ -190,7 +161,6 @@ int main(int argc, char* argv[])
         ImGui::Begin("Control Panel", nullptr, flags);
 
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-        ImGui::Text("Vertex Count: %d", vertex_count);
 
         if (loading)
         {
@@ -211,12 +181,21 @@ int main(int argc, char* argv[])
             ImGui::Text("Diffuse:");
             ImGui::PushItemWidth(-1);
             ImGui::SliderFloat("##Diffuse", &diffuse_level, 0.f, 1.f);
+
+            ImGui::Checkbox("Rotate Light", &rotate_light);
+            ImGui::PushItemWidth(-1);
+            ImGui::SliderFloat("##Rotation", &light_angle, 0.f, 2 * 3.14f);
+        }
+
+        for (auto& model : models)
+        {
+            std::stringstream ss; 
+            ss << model.id << "##" << "_visible";
+            ImGui::Checkbox(ss.str().c_str(), &model.visible);
         }
 
         ImGui::End();
     }
-
-    loader_thread.join();
 
     return EXIT_SUCCESS;
 }
