@@ -24,9 +24,9 @@ void main(void){
 	vec2 tex_coords = textCoords;
 	tex_coords.y = 1.0 - tex_coords.y;
 
-	//vec4 normalMapValue = 2.0 * texture(textureNormalSampler, tex_coords) - 1.0;
+	vec4 normalMapValue = 2.0 * texture(textureNormalSampler, tex_coords) - 1.0;
 
-	vec3 unitNormal = normalize(surfaceNormal.xyz);
+	vec3 unitNormal = normalize(normalMapValue.xyz);
 	vec3 unitLight = normalize(toLightVector);
 	vec3 unitCamera = normalize(toCameraVector);
 	vec3 lightDir = -unitLight;
@@ -45,10 +45,9 @@ void main(void){
 	vec4 dark_color = texture(textureDarkSampler, tex_coords);
 	vec4 lighting = vec4(diffuse, 1.0);
 
+	float s = smoothstep(-0.05, 0.05, nDotl);
+
 	if (nDotl > 0.0) lighting = lighting + vec4(finalSpec, 1.0);
 
-	float s = smoothstep(-0.1, 0.1, nDotl);
-
 	out_color = lighting * (light_color * s + dark_color * (1.0 - s));
-	//out_color = vec4(unitNormal, 1.0);
 }

@@ -1,6 +1,6 @@
 #include "model.h"
 
-void model::create(const obj_file& loader)
+void model::create(obj_file& loader)
 {
     for (auto& mesh : loader)
     {
@@ -16,21 +16,20 @@ void model::create(const obj_file& loader)
             //    diffuse.upload(diffuse_path);
             //}
 
-            auto positions = mesh.positions;
-            for (auto& p : positions)
+            for (auto& p : mesh.positions)
             {
                 auto length = p.x * p.x + p.y * p.y + p.z * p.z;
                 _max = std::max(length, _max);
             }
             _max = sqrt(_max);
-            for (auto& p : positions)
+            for (auto& p : mesh.positions)
             {
                 p.x /= _max;
                 p.y /= _max;
                 p.z /= _max;
             }
 
-            _geometry = std::make_shared<vao>(positions.data(), 
+            _geometry = std::make_shared<vao>(mesh.positions.data(),
                 mesh.uvs.data(),
                 mesh.normals.data(), 
                 mesh.tangents.data(),

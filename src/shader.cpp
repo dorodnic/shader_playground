@@ -5,7 +5,7 @@
 
 #include <easylogging++.h>
 
-unsigned int shader_program::get_uniform_location(const std::string& name)
+int shader_program::get_uniform_location(const std::string& name)
 {
     return glGetUniformLocation(_id, name.c_str());
 }

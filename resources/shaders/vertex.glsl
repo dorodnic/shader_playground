@@ -36,6 +36,8 @@ void main(void){
 		tang.z, bitang.z, norm.z
 	);
 
+	surfaceNormal = toTangentSpace * surfaceNormal;
+
 	toLightVector = toTangentSpace * (lightPosition - worldPosition.xyz);
 	toCameraVector = toTangentSpace * ((inverse(cameraMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz - worldPosition.xyz);
 }

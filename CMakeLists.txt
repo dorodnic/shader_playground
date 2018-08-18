@@ -12,11 +12,15 @@ add_definitions(-DELPP_THREAD_SAFE)
 add_definitions(-DNOMINMAX)
 
 set(SHADERS resources/shaders/fragment.glsl
-            resources/shaders/vertex.glsl)
+            resources/shaders/vertex.glsl
+            resources/shaders/arrow_fragment.glsl
+            resources/shaders/arrow_vertex.glsl)
 
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(RESOURCES resources/shaders/fragment.glsl
                   resources/shaders/vertex.glsl
+                  resources/shaders/arrow_fragment.glsl
+                  resources/shaders/arrow_vertex.glsl
                   resources/mish.jpg
                   resources/mish_dark.jpg
                   resources/white.png

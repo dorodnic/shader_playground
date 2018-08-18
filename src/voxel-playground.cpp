@@ -36,9 +36,9 @@ int main(int argc, char* argv[])
     texture normal_map;
     texture ocean_mask;
 
-    diffuse.upload("resources/mish.jpg");
-    diffuse2.upload("resources/mish_dark.jpg");
-    normal_map.upload("resources/normal_map.png");
+    diffuse.upload("resources/Diffuse_2K.png");
+    diffuse2.upload("resources/Night_lights_2K.png");
+    normal_map.upload("resources/Normal_2K.png");
     ocean_mask.upload("resources/mish.jpg");
 
     light l;
@@ -84,8 +84,35 @@ int main(int argc, char* argv[])
     camera cam(app);
     cam.look_at({ 0.f, 0.f, 0.f });
 
-    loader earth("resources/cube.obj");
+    loader earth("resources/earth.obj");
     bool loading = true;
+
+    float3 arrow_vert[] = {
+        { -0.05f, 0.f, 0.f },
+        { 0.05f, 0.f, 0.f },
+        { -0.05f, 0.7f, 0.f },
+        { 0.05f, 0.7f, 0.f },
+        { -0.2f, 0.7f, 0.f },
+        { 0.2f, 0.7f, 0.f },
+        { 0.0f, 1.f, 0.f },
+    };
+    int3 arrow_idx[] = {
+        { 0, 1, 2 },
+        { 1, 2, 3 },
+        { 4, 5, 6 }
+    };
+    vao arrow(arrow_vert, nullptr, nullptr, nullptr,
+        sizeof(arrow_vert) / sizeof(arrow_vert[0]),
+        arrow_idx, sizeof(arrow_idx) / sizeof(arrow_idx[0]));
+
+    auto arrow_shader = shader_program::load(
+        "resources/shaders/arrow_vertex.glsl",
+        "resources/shaders/arrow_fragment.glsl");
+    arrow_shader->bind_attribute(0, "position");
+    auto arrow_colour_location = arrow_shader->get_uniform_location("arrowColour");
+    auto arrow_transformation_matrix_location = arrow_shader->get_uniform_location("transformationMatrix");
+    auto arrow_projection_matrix_location = arrow_shader->get_uniform_location("projectionMatrix");
+    auto arrow_camera_matrix_location = arrow_shader->get_uniform_location("cameraMatrix");
 
     while (app)
     {
@@ -109,7 +136,7 @@ int main(int argc, char* argv[])
             while (light_angle > 2 * 3.14) light_angle -= 2 * 3.14;
         }
 
-        l.position = { 2.f * std::sinf(-light_angle), 1.f, 2.f * std::cosf(-light_angle) };
+        l.position = { 2.f * std::sinf(-light_angle), 1.5f, 2.f * std::cosf(-light_angle) };
         l.colour = { s, t, s };
 
         auto matrix = mul(
@@ -151,6 +178,92 @@ int main(int argc, char* argv[])
 
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
+
+        arrow_shader->begin();
+        arrow_shader->load_uniform(arrow_camera_matrix_location, cam.view_matrix());
+        arrow_shader->load_uniform(arrow_projection_matrix_location, cam.projection_matrix());
+        
+        /*if (earth.ready())
+        {
+            auto mesh = earth.get().front();
+
+            for (int i = 0; i < mesh.positions.size(); i++)
+            {
+                auto pos = mesh.positions[i];
+                auto norm = mesh.normals[i];
+                auto matrix = mul(
+                    translation_matrix(pos),
+                    scaling_matrix(float3{ 0.2f, 0.2f, 0.2f })
+                );
+                norm = 0.2f * normalize(norm);
+
+                auto vm = inverse(cam.view_matrix());
+                auto to_camera = 0.2f * normalize(vm[3].xyz() - pos);
+
+                if (dot(to_camera, mesh.normals[i]) < 0.f) continue;
+
+                matrix[0].xyz() = cross(norm, to_camera);
+                matrix[1].xyz() = norm;
+                matrix[2].xyz() = to_camera;
+
+                arrow_shader->load_uniform(arrow_transformation_matrix_location, matrix);
+                arrow_shader->load_uniform(arrow_colour_location, { 1.f, 0.f, 0.f });
+
+                arrow.draw();
+            }
+
+            for (int i = 0; i < mesh.positions.size(); i++)
+            {
+                auto pos = mesh.positions[i];
+                auto norm = mesh.tangents[i];
+                auto matrix = mul(
+                    translation_matrix(pos),
+                    scaling_matrix(float3{ 0.2f, 0.2f, 0.2f })
+                );
+                norm = 0.2f * normalize(norm);
+
+                auto vm = inverse(cam.view_matrix());
+                auto to_camera = 0.2f * normalize(vm[3].xyz() - pos);
+
+                if (dot(to_camera, mesh.normals[i]) < 0.f) continue;
+
+                matrix[0].xyz() = cross(norm, to_camera);
+                matrix[1].xyz() = norm;
+                matrix[2].xyz() = to_camera;
+
+                arrow_shader->load_uniform(arrow_transformation_matrix_location, matrix);
+                arrow_shader->load_uniform(arrow_colour_location, { 0.f, 0.f, 1.f });
+
+                arrow.draw();
+            }
+
+            for (int i = 0; i < mesh.positions.size(); i++)
+            {
+                auto pos = mesh.positions[i];
+                auto norm = cross(mesh.tangents[i], mesh.normals[i]);
+                auto matrix = mul(
+                    translation_matrix(pos),
+                    scaling_matrix(float3{ 0.2f, 0.2f, 0.2f })
+                );
+                norm = 0.2f * normalize(norm);
+
+                auto vm = inverse(cam.view_matrix());
+                auto to_camera = 0.2f * normalize(vm[3].xyz() - pos);
+
+                if (dot(to_camera, mesh.normals[i]) < 0.f) continue;
+
+                matrix[0].xyz() = cross(norm, to_camera);
+                matrix[1].xyz() = norm;
+                matrix[2].xyz() = to_camera;
+
+                arrow_shader->load_uniform(arrow_transformation_matrix_location, matrix);
+                arrow_shader->load_uniform(arrow_colour_location, { 0.f, 1.f, 0.f });
+
+                arrow.draw();
+            }
+        }*/
+
+        arrow_shader->end();
 
         const auto flags = ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove |

@@ -44,7 +44,7 @@ public:
                               
     unsigned int get_id() const { return _id; }
 
-    unsigned int get_uniform_location(const std::string& name);
+    int get_uniform_location(const std::string& name);
     void load_uniform(int location, float value);
     void load_uniform(int location, const float3& vec);
     void load_uniform(int location, bool value);

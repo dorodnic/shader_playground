@@ -13,9 +13,9 @@ vao::vao(const float3* vert, const float2* uvs, const float3* normals,
     bind();
     _indexes.upload(indx, indx_count);
     _vertexes.upload(0, (float*)vert, 3, vert_count);
-    _normals.upload(2, (float*)normals, 3, vert_count);
-    _tangents.upload(3, (float*)tangents, 3, vert_count);
-    _uvs.upload(1, (float*)uvs, 2, vert_count);
+    if (normals) _normals.upload(2, (float*)normals, 3, vert_count);
+    if (tangents) _tangents.upload(3, (float*)tangents, 3, vert_count);
+    if (uvs) _uvs.upload(1, (float*)uvs, 2, vert_count);
     unbind();
 }
 
@@ -50,16 +50,16 @@ void vao::draw()
     bind();
 
     glEnableVertexAttribArray(0); // vertex
-    glEnableVertexAttribArray(1); // uv
-    glEnableVertexAttribArray(2); // normals
-    glEnableVertexAttribArray(3); // tangents
+    if (_uvs.size())        glEnableVertexAttribArray(1); // uv
+    if (_normals.size())    glEnableVertexAttribArray(2); // normals
+    if (_tangents.size())   glEnableVertexAttribArray(3); // tangents
     
     _indexes.draw_indexed_triangles();
     
     glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
-    glDisableVertexAttribArray(3);
+    if (_uvs.size())        glDisableVertexAttribArray(1);
+    if (_normals.size())    glDisableVertexAttribArray(2);
+    if (_tangents.size())   glDisableVertexAttribArray(3);
 
     unbind();
 }

@@ -73,7 +73,7 @@ void obj_mesh::calculate_tangents()
         auto deltaUv2 = t2 - t0;
 
         auto r = 1 / (deltaUv1.x * deltaUv2.y - deltaUv1.y * deltaUv2.x);
-        auto tangent = (deltaPos1 * deltaUv2.y - deltaPos2 * deltaUv1.y) * r;
+        auto tangent = -(deltaPos1 * deltaUv2.y - deltaPos2 * deltaUv1.y) * r;
         return tangent;
     };
 

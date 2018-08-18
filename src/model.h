@@ -11,7 +11,7 @@ public:
     std::string id;
     bool visible = true; 
 
-    void create(const obj_file& loader);
+    void create(obj_file& loader);
     model(std::string id) : id(id) {}
 
     float get_scale() const { return _max; }

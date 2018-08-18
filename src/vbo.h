@@ -25,6 +25,7 @@ public:
     void bind();
     void unbind();
 
+    uint32_t size() const { return _size; }
 private:
     vbo(const vbo& other) = delete;
     static int convert_type(vbo_type type);
