@@ -26,7 +26,23 @@ float to_rad(float deg)
     return deg * PI / 180;
 }
 
-float4x4 create_projection_matrix(float width, float height, float fov, float n, float f)
+float4x4 create_orthographic_projection_matrix(float width, float height, float fov, float n, float f)
+{
+    float4x4 res;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            res[0][0] = 0.f;
+    res[0][0] = 2/width;
+    res[1][1] = 2/height;
+    res[2][2] = -(2 / (f - n));
+    res[3][0] = 0;
+    res[3][1] = 0;
+    res[3][2] = -((f + n) / (f - n));
+    res[3][3] = 1;
+    return res;
+}
+
+float4x4 create_perspective_projection_matrix(float width, float height, float fov, float n, float f)
 {
     auto ar = width / height;
     auto y_scale = (1.f / std::tanf(to_rad(fov / 2.f))) * ar;

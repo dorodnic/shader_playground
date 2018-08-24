@@ -33,6 +33,11 @@ simple_shader::simple_shader()
 void simple_shader::begin() { _shader->begin(); }
 void simple_shader::end() { _shader->end(); }
 
+void simple_shader::set_model(const float4x4& model)
+{
+    _shader->load_uniform(_transformation_matrix_location, model);
+}
+
 void simple_shader::set_mvp(const float4x4& model,
     const float4x4& view,
     const float4x4& projection)

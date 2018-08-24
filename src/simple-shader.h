@@ -15,6 +15,8 @@ public:
                  const float4x4& view,
                  const float4x4& projection);
 
+    void set_model(const float4x4& model);
+
     void set_light(const float3& l);
 
     void set_material_properties(float ambient,

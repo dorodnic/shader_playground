@@ -24,9 +24,10 @@ obj_mesh generate_tube(float length, float radius, int a, int b)
     obj_mesh res;
 
     float pi = 2 * acos(-1);
+    int skipped = 0;
 
     auto toidx = [&](int i, int j) {
-        return i * (b + 1) + j;
+        return i * (b + 1) + j - skipped;
     };
 
     for (int i = 0; i <= a; i++)
@@ -68,12 +69,12 @@ int main(int argc, char* argv[])
 {
     START_EASYLOGGINGPP(argc, argv);
 
-    window app(1280, 720, "Voxel Playground");
+    window app(1280, 720, "Shader Playground");
 
     float progress = 0.f;
 
     texture mish;
-    mish.upload("resources/mish.jpg");
+    mish.upload("resources/texture.png");
 
     texture world;
     world.upload("resources/Diffuse_2K.png");
@@ -84,6 +85,12 @@ int main(int argc, char* argv[])
     loader ld("resources/earth.obj");
     while (!ld.ready());
     auto earth_vao = vao::create(ld.get().front());
+
+    texture cat_tex;
+    cat_tex.upload("resources/cat_diff.tga");
+    loader cat_ld("resources/cat.obj");
+    while (!cat_ld.ready());
+    auto cat = vao::create(cat_ld.get().front());
 
     light l;
     l.position = { 100.f, 0.f, -20.f };
@@ -100,11 +107,53 @@ int main(int argc, char* argv[])
     camera cam(app);
     cam.look_at({ 0.f, 0.f, 0.f });
 
-    fbo fbo1(320, 180);
+    fbo fbo1(640, 480);
     fbo1.createTextureAttachment();
     fbo1.createDepthTextureAttachment();
+    fbo fbo2(640, 480);
+    fbo2.createTextureAttachment();
+    fbo2.createDepthTextureAttachment();
 
     float4x4 matrix;
+
+    auto draw_refractables = [&]() {
+        shader.set_model(mul(
+            translation_matrix(float3{ 0.f, -9.f, -5.f }),
+            scaling_matrix(float3{ 2.f, 2.f, 2.f })
+        ));
+
+        world.bind(0);
+        earth_vao->draw();
+        world.unbind();
+
+        shader.set_model(mul(
+            translation_matrix(float3{ 5.f, 0.f, -2.f }),
+            scaling_matrix(float3{ 2.f, 2.f, 2.f })
+        ));
+
+        cat_tex.bind(0);
+        cat->draw();
+        cat_tex.unbind();
+    };
+
+    auto draw_tubes = [&](texture& color) {
+        mish.bind(0);
+        color.bind(1);
+        shader.set_model(mul(
+            translation_matrix(float3{ 0.f, 0.f, 0.f }),
+            scaling_matrix(float3{ 1.f, 1.f, 1.f })
+        ));
+        cylinder_vao->draw();
+
+        shader.set_model(mul(
+            translation_matrix(float3{ 3.f, 0.f, 0.f }),
+            scaling_matrix(float3{ 1.f, 1.f, 1.f })
+        ));
+        cylinder_vao->draw();
+
+        color.unbind();
+        mish.unbind();
+    };
 
     while (app)
     {
@@ -121,54 +170,54 @@ int main(int argc, char* argv[])
             while (light_angle > 2 * 3.14) light_angle -= 2 * 3.14;
         }
 
-        shader.begin();
-
-        fbo1.bind();
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        matrix = mul(
-            translation_matrix(float3{ 0.f, -9.f, -5.f }),
-            scaling_matrix(float3{ 2.f, 2.f, 2.f })
-        );
-        shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
-
-        world.bind(0);
-        earth_vao->draw();
-        world.unbind();
-
-        fbo1.unbind();
-        app.reset_viewport();
-
         l.position = { 5.f * std::sinf(-light_angle), 1.5f, 5.f * std::cosf(-light_angle) };
         l.colour = { s, t, s };
 
-        matrix = mul(
-            translation_matrix(float3{ 0.f, 0.f, 0.f }),
-            scaling_matrix(float3{ 1.f, 1.f, 1.f })
-        );
-
         cam.update(app);
+
+        shader.begin();
 
         shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
         shader.set_light(l.position);
         shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
 
-        mish.bind(0);
-        fbo1.get_color_texture().bind(1);
-        cylinder_vao->draw();
-        fbo1.get_color_texture().unbind();
-        mish.unbind();
+        fbo1.bind();
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        matrix = mul(
-            translation_matrix(float3{ 0.f, -9.f, -5.f }),
-            scaling_matrix(float3{ 2.f, 2.f, 2.f })
-        );
-        shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
+        draw_refractables();
 
-        world.bind(0);
-        earth_vao->draw();
-        world.unbind();
+        fbo1.unbind();
+
+
+        fbo2.bind();
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        draw_refractables();
+
+        glCullFace(GL_FRONT);
+
+        draw_tubes(fbo1.get_color_texture());
+
+        fbo2.unbind();
+
+        app.reset_viewport();
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+
+        draw_tubes(fbo1.get_color_texture());
+
+        //--
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        draw_tubes(fbo2.get_color_texture());
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        draw_refractables();
 
         shader.end();
 

@@ -24,6 +24,7 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/mish.jpg
                   resources/mish_dark.jpg
                   resources/white.png
+                  resources/texture.png
                   resources/dragon.obj
                   resources/earth.obj
                   resources/Diffuse_2K.png

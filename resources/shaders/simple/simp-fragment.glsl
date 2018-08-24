@@ -29,17 +29,19 @@ void main(void){
 	vec4 finalSpec = dampedFactor * reflectivity * vec4(1.0, 1.0, 1.0, 1.0);
 
 	float nDotl = dot(unitNormal, lightDir);
+	float nDotc = dot(unitNormal, unitCamera);
+	nDotc = abs(nDotc);
 	float brightness = max(nDotl, ambient);
 	vec4 lighting = brightness * vec4(1.0, 1.0, 1.0, 1.0);
 
 	vec4 color = texture(textureSampler, tex);
 
-	vec2 ndc = (clipSpace.xy / clipSpace.w) / 2.0 + 0.5;
+	vec2 ndc = ((clipSpace.xy / clipSpace.w) / 2.0 + 0.5);
 	vec4 color2 = texture(refractionSampler, ndc);
 
 	float s = smoothstep(-0.05, 0.05, nDotl);
 
 	lighting = lighting + finalSpec;
 
-	out_color = lighting * (color * 0.5 + color2 * 0.5);
+	out_color = lighting * mix(color, color2, nDotc);
 }

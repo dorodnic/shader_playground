@@ -18,7 +18,7 @@ void camera::look_at(float3 at)
 
 camera::camera(const window& w, float fov, float n, float f)
 {
-    _projection = create_projection_matrix(w.width(), w.height(), 120, 0.1f, 1000.f);
+    _projection = create_perspective_projection_matrix(w.width(), w.height(), 120, 0.1f, 1000.f);
     _view = identity_matrix();
 
     using namespace std::chrono;
