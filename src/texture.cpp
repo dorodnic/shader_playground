@@ -36,11 +36,11 @@ void texture::upload(const std::string& filename)
 
     int x, y, comp;
     auto r = stbi_load(filename.c_str(), &x, &y, &comp, false);
-    upload(comp, 8, x, y, x, r);
+    upload(comp, 8, x, y, r);
     stbi_image_free(r);
 }
 
-void texture::upload(int channels, int bits_per_channel, int width, int height, int stride, uint8_t* data)
+void texture::upload(int channels, int bits_per_channel, int width, int height, uint8_t* data)
 {
     bind(0);
 
@@ -59,6 +59,10 @@ void texture::upload(int channels, int bits_per_channel, int width, int height, 
     else if (channels == 1 && bits_per_channel == 16)
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RED, GL_UNSIGNED_SHORT, data);
+    }
+    else if (channels == 1 && bits_per_channel == 32)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, data);
     }
     else throw std::runtime_error("Unsupported image format!");
 

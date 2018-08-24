@@ -21,6 +21,13 @@ void APIENTRY opengl_error_callback(GLenum source, GLenum type, GLuint id,
         LOG(INFO) << message;
 }
 
+void window::reset_viewport()
+{
+    glfwGetFramebufferSize(_window, &_w, &_h);
+    glViewport(0, 0, _w, _h);
+    glfwGetWindowSize(_window, &_w, &_h);
+}
+
 window::~window()
 {
     if (!_first)

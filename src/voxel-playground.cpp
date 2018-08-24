@@ -10,6 +10,7 @@
 #include "loader.h"
 #include "advanced-shader.h"
 #include "simple-shader.h"
+#include "fbo.h"
 
 #include <easylogging++.h>
 INITIALIZE_EASYLOGGINGPP
@@ -99,6 +100,12 @@ int main(int argc, char* argv[])
     camera cam(app);
     cam.look_at({ 0.f, 0.f, 0.f });
 
+    fbo fbo1(320, 180);
+    fbo1.createTextureAttachment();
+    fbo1.createDepthTextureAttachment();
+
+    float4x4 matrix;
+
     while (app)
     {
         glEnable(GL_DEPTH_TEST);
@@ -114,23 +121,43 @@ int main(int argc, char* argv[])
             while (light_angle > 2 * 3.14) light_angle -= 2 * 3.14;
         }
 
+        shader.begin();
+
+        fbo1.bind();
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        matrix = mul(
+            translation_matrix(float3{ 0.f, -9.f, -5.f }),
+            scaling_matrix(float3{ 2.f, 2.f, 2.f })
+        );
+        shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
+
+        world.bind(0);
+        earth_vao->draw();
+        world.unbind();
+
+        fbo1.unbind();
+        app.reset_viewport();
+
         l.position = { 5.f * std::sinf(-light_angle), 1.5f, 5.f * std::cosf(-light_angle) };
         l.colour = { s, t, s };
 
-        auto matrix = mul(
+        matrix = mul(
             translation_matrix(float3{ 0.f, 0.f, 0.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         );
 
         cam.update(app);
 
-        shader.begin();
         shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
         shader.set_light(l.position);
         shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
 
         mish.bind(0);
+        fbo1.get_color_texture().bind(1);
         cylinder_vao->draw();
+        fbo1.get_color_texture().unbind();
         mish.unbind();
 
         matrix = mul(

@@ -83,6 +83,7 @@ add_executable(voxel-playground
     src/util.cpp src/util.h 
     src/vao.cpp src/vao.h 
     src/vbo.cpp src/vbo.h 
+    src/fbo.cpp src/fbo.h
     src/camera.cpp src/camera.h 
     src/model.cpp src/model.h
     src/loader.cpp src/loader.h

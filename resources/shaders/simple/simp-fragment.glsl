@@ -4,10 +4,12 @@ in vec2 textCoords;
 in vec3 surfaceNormal;
 in vec3 toLightVector;
 in vec3 toCameraVector;
+in vec4 clipSpace;
 
 out vec4 out_color;
 
 uniform sampler2D textureSampler;
+uniform sampler2D refractionSampler;
 
 uniform float shineDamper;
 uniform float reflectivity;
@@ -32,9 +34,12 @@ void main(void){
 
 	vec4 color = texture(textureSampler, tex);
 
+	vec2 ndc = (clipSpace.xy / clipSpace.w) / 2.0 + 0.5;
+	vec4 color2 = texture(refractionSampler, ndc);
+
 	float s = smoothstep(-0.05, 0.05, nDotl);
 
 	lighting = lighting + finalSpec;
 
-	out_color = lighting * color;
+	out_color = lighting * (color * 0.5 + color2 * 0.5);
 }

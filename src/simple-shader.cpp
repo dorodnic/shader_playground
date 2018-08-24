@@ -22,9 +22,11 @@ simple_shader::simple_shader()
     _reflectivity_location = _shader->get_uniform_location("reflectivity");
 
     auto texture0_sampler_location = _shader->get_uniform_location("textureSampler");
+    auto refractionSampler_location = _shader->get_uniform_location("refractionSampler");
 
     _shader->begin();
     _shader->load_uniform(texture0_sampler_location, 0);
+    _shader->load_uniform(refractionSampler_location, 1);
     _shader->end();
 }
 

@@ -21,6 +21,8 @@ public:
     int width() const { return _w; }
     int height() const { return _h; }
 
+    void reset_viewport();
+
     const mouse_info& get_mouse() const { return _mouse; }
     std::function<void(std::string)> on_file_drop = [](std::string) {};
 private:
