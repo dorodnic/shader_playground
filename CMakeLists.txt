@@ -76,6 +76,7 @@ endif()
 add_executable(voxel-playground 
     src/voxel-playground.cpp 
     src/shader.cpp src/shader.h 
+    src/advanced-shader.cpp src/advanced-shader.h
     src/window.cpp src/window.h 
     src/texture.cpp src/texture.h 
     src/util.cpp src/util.h 

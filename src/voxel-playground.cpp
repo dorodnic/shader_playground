@@ -8,17 +8,12 @@
 #include "camera.h"
 #include "model.h"
 #include "loader.h"
+#include "advanced-shader.h"
 
 #include <easylogging++.h>
 INITIALIZE_EASYLOGGINGPP
 
 #include <imgui.h>
-
-struct light
-{
-    float3 position;
-    float3 colour;
-};
 
 int main(int argc, char* argv[])
 {
@@ -45,35 +40,7 @@ int main(int argc, char* argv[])
     l.position = { 100.f, 0.f, -20.f };
     l.colour = { 1.f, 0.f, 0.f };
 
-    auto shader = shader_program::load("resources/shaders/vertex.glsl", 
-                                       "resources/shaders/fragment.glsl");
-    shader->bind_attribute(0, "position");
-    shader->bind_attribute(1, "textureCoords");
-    shader->bind_attribute(2, "normal");
-    shader->bind_attribute(3, "tangent");
-
-    auto transformation_matrix_location = shader->get_uniform_location("transformationMatrix");
-    auto projection_matrix_location = shader->get_uniform_location("projectionMatrix");
-    auto camera_matrix_location = shader->get_uniform_location("cameraMatrix");
-
-    auto light_position_location = shader->get_uniform_location("lightPosition");
-    auto light_colour_location = shader->get_uniform_location("lightColour");
-
-    auto diffuse_location = shader->get_uniform_location("diffuse");
-    auto shine_location = shader->get_uniform_location("shineDamper");
-    auto reflectivity_location = shader->get_uniform_location("reflectivity");
-
-    auto texture0_sampler_location = shader->get_uniform_location("textureSampler");
-    auto texture1_sampler_location = shader->get_uniform_location("textureDarkSampler");
-    auto texture_normal_sampler_location = shader->get_uniform_location("textureNormalSampler");
-    auto texture_mask_sampler_location = shader->get_uniform_location("textureMaskSampler");
-
-    shader->begin();
-    shader->load_uniform(texture0_sampler_location, 0);
-    shader->load_uniform(texture1_sampler_location, 1);
-    shader->load_uniform(texture_normal_sampler_location, 2);
-    shader->load_uniform(texture_mask_sampler_location, 3);
-    shader->end();
+    advanced_shader shader;
 
     auto shineDamper = 10.f;
     auto reflectivity = 1.f;
@@ -86,33 +53,6 @@ int main(int argc, char* argv[])
 
     loader earth("resources/earth.obj");
     bool loading = true;
-
-    float3 arrow_vert[] = {
-        { -0.05f, 0.f, 0.f },
-        { 0.05f, 0.f, 0.f },
-        { -0.05f, 0.7f, 0.f },
-        { 0.05f, 0.7f, 0.f },
-        { -0.2f, 0.7f, 0.f },
-        { 0.2f, 0.7f, 0.f },
-        { 0.0f, 1.f, 0.f },
-    };
-    int3 arrow_idx[] = {
-        { 0, 1, 2 },
-        { 1, 2, 3 },
-        { 4, 5, 6 }
-    };
-    vao arrow(arrow_vert, nullptr, nullptr, nullptr,
-        sizeof(arrow_vert) / sizeof(arrow_vert[0]),
-        arrow_idx, sizeof(arrow_idx) / sizeof(arrow_idx[0]));
-
-    auto arrow_shader = shader_program::load(
-        "resources/shaders/arrow_vertex.glsl",
-        "resources/shaders/arrow_fragment.glsl");
-    arrow_shader->bind_attribute(0, "position");
-    auto arrow_colour_location = arrow_shader->get_uniform_location("arrowColour");
-    auto arrow_transformation_matrix_location = arrow_shader->get_uniform_location("transformationMatrix");
-    auto arrow_projection_matrix_location = arrow_shader->get_uniform_location("projectionMatrix");
-    auto arrow_camera_matrix_location = arrow_shader->get_uniform_location("cameraMatrix");
 
     while (app)
     {
@@ -146,18 +86,10 @@ int main(int argc, char* argv[])
 
         cam.update(app);
 
-        shader->begin();
-
-        shader->load_uniform(shine_location, shineDamper);
-        shader->load_uniform(reflectivity_location, reflectivity);
-        shader->load_uniform(diffuse_location, diffuse_level);
-
-        shader->load_uniform(light_position_location, l.position);
-        shader->load_uniform(light_colour_location, l.colour);
-
-        shader->load_uniform(transformation_matrix_location, matrix);
-        shader->load_uniform(camera_matrix_location, cam.view_matrix());
-        shader->load_uniform(projection_matrix_location, cam.projection_matrix());
+        shader.begin();
+        shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
+        shader.set_light(l);
+        shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
 
         diffuse.bind(0);
         diffuse2.bind(1);
@@ -174,96 +106,10 @@ int main(int argc, char* argv[])
         diffuse2.unbind();
         diffuse.unbind();
 
-        shader->end();
+        shader.end();
 
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
-
-        arrow_shader->begin();
-        arrow_shader->load_uniform(arrow_camera_matrix_location, cam.view_matrix());
-        arrow_shader->load_uniform(arrow_projection_matrix_location, cam.projection_matrix());
-        
-        /*if (earth.ready())
-        {
-            auto mesh = earth.get().front();
-
-            for (int i = 0; i < mesh.positions.size(); i++)
-            {
-                auto pos = mesh.positions[i];
-                auto norm = mesh.normals[i];
-                auto matrix = mul(
-                    translation_matrix(pos),
-                    scaling_matrix(float3{ 0.2f, 0.2f, 0.2f })
-                );
-                norm = 0.2f * normalize(norm);
-
-                auto vm = inverse(cam.view_matrix());
-                auto to_camera = 0.2f * normalize(vm[3].xyz() - pos);
-
-                if (dot(to_camera, mesh.normals[i]) < 0.f) continue;
-
-                matrix[0].xyz() = cross(norm, to_camera);
-                matrix[1].xyz() = norm;
-                matrix[2].xyz() = to_camera;
-
-                arrow_shader->load_uniform(arrow_transformation_matrix_location, matrix);
-                arrow_shader->load_uniform(arrow_colour_location, { 1.f, 0.f, 0.f });
-
-                arrow.draw();
-            }
-
-            for (int i = 0; i < mesh.positions.size(); i++)
-            {
-                auto pos = mesh.positions[i];
-                auto norm = mesh.tangents[i];
-                auto matrix = mul(
-                    translation_matrix(pos),
-                    scaling_matrix(float3{ 0.2f, 0.2f, 0.2f })
-                );
-                norm = 0.2f * normalize(norm);
-
-                auto vm = inverse(cam.view_matrix());
-                auto to_camera = 0.2f * normalize(vm[3].xyz() - pos);
-
-                if (dot(to_camera, mesh.normals[i]) < 0.f) continue;
-
-                matrix[0].xyz() = cross(norm, to_camera);
-                matrix[1].xyz() = norm;
-                matrix[2].xyz() = to_camera;
-
-                arrow_shader->load_uniform(arrow_transformation_matrix_location, matrix);
-                arrow_shader->load_uniform(arrow_colour_location, { 0.f, 0.f, 1.f });
-
-                arrow.draw();
-            }
-
-            for (int i = 0; i < mesh.positions.size(); i++)
-            {
-                auto pos = mesh.positions[i];
-                auto norm = cross(mesh.tangents[i], mesh.normals[i]);
-                auto matrix = mul(
-                    translation_matrix(pos),
-                    scaling_matrix(float3{ 0.2f, 0.2f, 0.2f })
-                );
-                norm = 0.2f * normalize(norm);
-
-                auto vm = inverse(cam.view_matrix());
-                auto to_camera = 0.2f * normalize(vm[3].xyz() - pos);
-
-                if (dot(to_camera, mesh.normals[i]) < 0.f) continue;
-
-                matrix[0].xyz() = cross(norm, to_camera);
-                matrix[1].xyz() = norm;
-                matrix[2].xyz() = to_camera;
-
-                arrow_shader->load_uniform(arrow_transformation_matrix_location, matrix);
-                arrow_shader->load_uniform(arrow_colour_location, { 0.f, 1.f, 0.f });
-
-                arrow.draw();
-            }
-        }*/
-
-        arrow_shader->end();
 
         const auto flags = ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove |
