@@ -23,7 +23,6 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/shaders/simple/simp-vertex.glsl
                   resources/mish.jpg
                   resources/mish_dark.jpg
-                  resources/white.png
                   resources/texture.png
                   resources/dragon.obj
                   resources/earth.obj

@@ -46,7 +46,7 @@ obj_mesh generate_tube(float length, float radius, int a, int b)
             auto l = sqrt(x * x + y * y);
             res.normals.emplace_back(x / l, y / l, 0);
 
-            res.uvs.emplace_back(ti, tj);
+            res.uvs.emplace_back(ti, tj * length / radius);
 
             if (i < a && j < b)
             {
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
     texture world;
     world.upload("resources/Diffuse_2K.png");
 
-    auto cylinder = generate_tube(3.f, 1.f, 5, 15);
+    auto cylinder = generate_tube(3.f, 1.f, 5, 32);
     auto cylinder_vao = vao::create(cylinder);
 
     loader ld("resources/earth.obj");
@@ -116,10 +116,19 @@ int main(int argc, char* argv[])
 
     float4x4 matrix;
 
-    auto draw_refractables = [&]() {
+    auto draw_refractables = [&](float t) {
+        double factor = sin(t / 2.0);
+        double x = -0.2 * factor;
+        double y = -0.8 * factor;
+        double z = 0 * factor;
+        double w = cos(t / 2.0);
+        float4 q(x, y, z, w);
+        q = normalize(q);
+
         shader.set_model(mul(
             translation_matrix(float3{ 0.f, -9.f, -5.f }),
-            scaling_matrix(float3{ 2.f, 2.f, 2.f })
+            scaling_matrix(float3{ 2.f, 2.f, 2.f }),
+            rotation_matrix(q)
         ));
 
         world.bind(0);
@@ -173,6 +182,8 @@ int main(int argc, char* argv[])
         l.position = { 5.f * std::sinf(-light_angle), 1.5f, 5.f * std::cosf(-light_angle) };
         l.colour = { s, t, s };
 
+        t = cam.clock() / 10;
+
         cam.update(app);
 
         shader.begin();
@@ -185,7 +196,7 @@ int main(int argc, char* argv[])
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        draw_refractables();
+        draw_refractables(t);
 
         fbo1.unbind();
 
@@ -194,10 +205,11 @@ int main(int argc, char* argv[])
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        draw_refractables();
+        draw_refractables(t);
 
         glCullFace(GL_FRONT);
 
+        shader.set_distortion(0.2f);
         draw_tubes(fbo1.get_color_texture());
 
         fbo2.unbind();
@@ -212,12 +224,13 @@ int main(int argc, char* argv[])
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
+        shader.set_distortion(0.f);
         draw_tubes(fbo2.get_color_texture());
 
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
-        draw_refractables();
+        draw_refractables(t);
 
         shader.end();
 

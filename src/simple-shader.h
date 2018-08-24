@@ -22,6 +22,8 @@ public:
     void set_material_properties(float ambient,
         float shine, float reflectivity);
 
+    void set_distortion(float d);
+
 private:
     std::unique_ptr<shader_program> _shader;
 
@@ -34,4 +36,7 @@ private:
     uint32_t _ambient_location;
     uint32_t _shine_location;
     uint32_t _reflectivity_location;
+    uint32_t _shine2_location;
+    uint32_t _reflectivity2_location;
+    uint32_t _distortion_location;
 };
