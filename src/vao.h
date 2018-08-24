@@ -4,10 +4,13 @@
 #include "util.h"
 #include "texture.h"
 #include "vbo.h"
+#include "loader.h"
 
 class vao
 {
 public:
+    static std::unique_ptr<vao> create(const obj_mesh& m);
+
     vao(const float3* vert, const float2* uvs, const float3* normals, 
         const float3* tangents, int vert_count, const int3* indx, int indx_count);
     ~vao();

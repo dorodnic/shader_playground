@@ -11,16 +11,16 @@ list(APPEND DEPENDENCIES ${OPENGL_LIBRARIES})
 add_definitions(-DELPP_THREAD_SAFE)
 add_definitions(-DNOMINMAX)
 
-set(SHADERS resources/shaders/fragment.glsl
-            resources/shaders/vertex.glsl
-            resources/shaders/arrow_fragment.glsl
-            resources/shaders/arrow_vertex.glsl)
+set(SHADERS resources/shaders/advanced/adv-fragment.glsl
+            resources/shaders/advanced/adv-vertex.glsl
+            resources/shaders/simple/simp-fragment.glsl
+            resources/shaders/simple/simp-vertex.glsl)
 
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
-    set(RESOURCES resources/shaders/fragment.glsl
-                  resources/shaders/vertex.glsl
-                  resources/shaders/arrow_fragment.glsl
-                  resources/shaders/arrow_vertex.glsl
+    set(RESOURCES resources/shaders/advanced/adv-fragment.glsl
+                  resources/shaders/advanced/adv-vertex.glsl
+                  resources/shaders/simple/simp-fragment.glsl
+                  resources/shaders/simple/simp-vertex.glsl
                   resources/mish.jpg
                   resources/mish_dark.jpg
                   resources/white.png
@@ -77,6 +77,7 @@ add_executable(voxel-playground
     src/voxel-playground.cpp 
     src/shader.cpp src/shader.h 
     src/advanced-shader.cpp src/advanced-shader.h
+    src/simple-shader.cpp src/simple-shader.h
     src/window.cpp src/window.h 
     src/texture.cpp src/texture.h 
     src/util.cpp src/util.h 

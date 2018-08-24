@@ -9,11 +9,59 @@
 #include "model.h"
 #include "loader.h"
 #include "advanced-shader.h"
+#include "simple-shader.h"
 
 #include <easylogging++.h>
 INITIALIZE_EASYLOGGINGPP
 
 #include <imgui.h>
+
+#include <math.h>
+
+obj_mesh generate_tube(float length, float radius, int a, int b)
+{
+    obj_mesh res;
+
+    float pi = 2 * acos(-1);
+
+    auto toidx = [&](int i, int j) {
+        return i * (b + 1) + j;
+    };
+
+    for (int i = 0; i <= a; i++)
+    {
+        auto ti = (float)i / a;
+        for (int j = 0; j <= b; j++)
+        {
+            auto tj = (float)j / b;
+
+            auto z = (length / 2) * ti + (-length / 2) * (1 - ti);
+
+            auto x = sinf(tj * pi) * radius;
+            auto y = -cosf(tj * pi) * radius;
+            res.positions.emplace_back(x, y, z);
+
+            auto l = sqrt(x * x + y * y);
+            res.normals.emplace_back(x / l, y / l, 0);
+
+            res.uvs.emplace_back(ti, tj);
+
+            if (i < a && j < b)
+            {
+                auto curr = toidx(i, j);
+                auto next_a = toidx(i + 1, j);
+                auto next_b = toidx(i, j + 1);
+                auto next_ab = toidx(i + 1, j + 1);
+                res.indexes.emplace_back(curr, next_b, next_a);
+                res.indexes.emplace_back(next_a, next_b, next_ab);
+            }
+        }
+    }
+
+    res.calculate_tangents();
+
+    return res;
+}
 
 int main(int argc, char* argv[])
 {
@@ -21,26 +69,19 @@ int main(int argc, char* argv[])
 
     window app(1280, 720, "Voxel Playground");
 
-    std::vector<model> models;
-    models.emplace_back("*");
-
     float progress = 0.f;
 
-    texture diffuse;
-    texture diffuse2;
-    texture normal_map;
-    texture ocean_mask;
+    texture mish;
+    mish.upload("resources/mish.jpg");
 
-    diffuse.upload("resources/Diffuse_2K.png");
-    diffuse2.upload("resources/Night_lights_2K.png");
-    normal_map.upload("resources/Normal_2K.png");
-    ocean_mask.upload("resources/mish.jpg");
+    auto cylinder = generate_tube(3.f, 1.f, 5, 15);
+    auto cylinder_vao = vao::create(cylinder);
 
     light l;
     l.position = { 100.f, 0.f, -20.f };
     l.colour = { 1.f, 0.f, 0.f };
 
-    advanced_shader shader;
+    simple_shader shader;
 
     auto shineDamper = 10.f;
     auto reflectivity = 1.f;
@@ -51,21 +92,11 @@ int main(int argc, char* argv[])
     camera cam(app);
     cam.look_at({ 0.f, 0.f, 0.f });
 
-    loader earth("resources/earth.obj");
-    bool loading = true;
-
     while (app)
     {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
-
-        if (earth.ready() && loading)
-        {
-            for (auto& model : models)
-                model.create(earth.get());
-            loading = false;
-        }
 
         auto s = std::abs(std::sinf(cam.clock())) * 0.2f + 0.8f;
         auto t = std::abs(std::sinf(cam.clock() + 5)) * 0.2f + 0.8f;
@@ -76,7 +107,7 @@ int main(int argc, char* argv[])
             while (light_angle > 2 * 3.14) light_angle -= 2 * 3.14;
         }
 
-        l.position = { 2.f * std::sinf(-light_angle), 1.5f, 2.f * std::cosf(-light_angle) };
+        l.position = { 5.f * std::sinf(-light_angle), 1.5f, 5.f * std::cosf(-light_angle) };
         l.colour = { s, t, s };
 
         auto matrix = mul(
@@ -88,23 +119,12 @@ int main(int argc, char* argv[])
 
         shader.begin();
         shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
-        shader.set_light(l);
+        shader.set_light(l.position);
         shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
 
-        diffuse.bind(0);
-        diffuse2.bind(1);
-        normal_map.bind(2);
-        ocean_mask.bind(3);
-        
-        for (auto& model : models)
-        {
-            model.render();
-        }
-
-        ocean_mask.unbind();
-        normal_map.unbind();
-        diffuse2.unbind();
-        diffuse.unbind();
+        mish.bind(0);
+        cylinder_vao->draw();
+        mish.unbind();
 
         shader.end();
 
@@ -121,37 +141,21 @@ int main(int argc, char* argv[])
 
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
-        if (loading)
-        {
-            ImGui::Text("Loading Assets...");
-            ImGui::PushItemWidth(-1);
-            ImGui::ProgressBar(progress);
-        }
-        else
-        {
-            ImGui::Text("Specular Dampening:");
-            ImGui::PushItemWidth(-1);
-            ImGui::SliderFloat("##SpecDamp", &shineDamper, 0.f, 100.f);
+        ImGui::Text("Specular Dampening:");
+        ImGui::PushItemWidth(-1);
+        ImGui::SliderFloat("##SpecDamp", &shineDamper, 0.f, 100.f);
 
-            ImGui::Text("Reflectivity:");
-            ImGui::PushItemWidth(-1);
-            ImGui::SliderFloat("##Reflect", &reflectivity, 0.f, 3.f);
+        ImGui::Text("Reflectivity:");
+        ImGui::PushItemWidth(-1);
+        ImGui::SliderFloat("##Reflect", &reflectivity, 0.f, 3.f);
 
-            ImGui::Text("Diffuse:");
-            ImGui::PushItemWidth(-1);
-            ImGui::SliderFloat("##Diffuse", &diffuse_level, 0.f, 1.f);
+        ImGui::Text("Diffuse:");
+        ImGui::PushItemWidth(-1);
+        ImGui::SliderFloat("##Diffuse", &diffuse_level, 0.f, 1.f);
 
-            ImGui::Checkbox("Rotate Light", &rotate_light);
-            ImGui::PushItemWidth(-1);
-            ImGui::SliderFloat("##Rotation", &light_angle, 0.f, 2 * 3.14f);
-        }
-
-        for (auto& model : models)
-        {
-            std::stringstream ss; 
-            ss << model.id << "##" << "_visible";
-            ImGui::Checkbox(ss.str().c_str(), &model.visible);
-        }
+        ImGui::Checkbox("Rotate Light", &rotate_light);
+        ImGui::PushItemWidth(-1);
+        ImGui::SliderFloat("##Rotation", &light_angle, 0.f, 2 * 3.14f);
 
         ImGui::End();
     }

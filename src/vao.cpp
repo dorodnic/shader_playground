@@ -19,6 +19,17 @@ vao::vao(const float3* vert, const float2* uvs, const float3* normals,
     unbind();
 }
 
+std::unique_ptr<vao> vao::create(const obj_mesh& mesh)
+{
+    return std::make_unique<vao>(mesh.positions.data(),
+        mesh.uvs.data(),
+        mesh.normals.data(),
+        mesh.tangents.data(),
+        mesh.positions.size(),
+        mesh.indexes.data(),
+        mesh.indexes.size());
+}
+
 vao::vao(vao&& other)
     : _id(other._id), 
       _indexes(std::move(other._indexes)),
