@@ -14,10 +14,12 @@ uniform float reflectivity;
 uniform float ambient;
 
 void main(void){
+	vec2 tex = vec2(textCoords.x, 1 - textCoords.y);
+
 	vec3 unitNormal = normalize(surfaceNormal);
 	vec3 lightDir = normalize(toLightVector);
 	vec3 unitCamera = normalize(toCameraVector);
-	vec3 refLightDir = reflect(lightDir, unitNormal);
+	vec3 refLightDir = reflect(-lightDir, unitNormal);
 
 	float specularFactor = dot(refLightDir, unitCamera);
 	specularFactor = max(specularFactor, 0.0);
@@ -28,11 +30,11 @@ void main(void){
 	float brightness = max(nDotl, ambient);
 	vec4 lighting = brightness * vec4(1.0, 1.0, 1.0, 1.0);
 
-	vec4 color = texture(textureSampler, textCoords);
+	vec4 color = texture(textureSampler, tex);
 
 	float s = smoothstep(-0.05, 0.05, nDotl);
 
-	if (nDotl > 0.0) lighting = lighting + finalSpec;
+	lighting = lighting + finalSpec;
 
 	out_color = lighting * color;
 }

@@ -74,8 +74,15 @@ int main(int argc, char* argv[])
     texture mish;
     mish.upload("resources/mish.jpg");
 
+    texture world;
+    world.upload("resources/Diffuse_2K.png");
+
     auto cylinder = generate_tube(3.f, 1.f, 5, 15);
     auto cylinder_vao = vao::create(cylinder);
+
+    loader ld("resources/earth.obj");
+    while (!ld.ready());
+    auto earth_vao = vao::create(ld.get().front());
 
     light l;
     l.position = { 100.f, 0.f, -20.f };
@@ -125,6 +132,16 @@ int main(int argc, char* argv[])
         mish.bind(0);
         cylinder_vao->draw();
         mish.unbind();
+
+        matrix = mul(
+            translation_matrix(float3{ 0.f, -9.f, -5.f }),
+            scaling_matrix(float3{ 2.f, 2.f, 2.f })
+        );
+        shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
+
+        world.bind(0);
+        earth_vao->draw();
+        world.unbind();
 
         shader.end();
 
