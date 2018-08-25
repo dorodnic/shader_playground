@@ -10,6 +10,7 @@ out vec4 out_color;
 
 uniform sampler2D textureSampler;
 uniform sampler2D refractionSampler;
+uniform sampler2D textureNormalSampler;
 
 uniform float shineDamper;
 uniform float reflectivity;
@@ -21,7 +22,9 @@ uniform float distortion;
 void main(void){
 	vec2 tex = vec2(textCoords.x, 1 - textCoords.y);
 
-	vec3 unitNormal = normalize(surfaceNormal);
+	vec4 normalMapValue = 2.0 * texture(textureNormalSampler, tex) - 1.0;
+
+	vec3 unitNormal = normalize(normalMapValue.xyz);
 	vec3 lightDir = normalize(toLightVector);
 	vec3 unitCamera = normalize(toCameraVector);
 	vec3 refLightDir = reflect(-lightDir, unitNormal);
@@ -48,6 +51,7 @@ void main(void){
 	vec2 clip_xy = clipSpace.xy;
 
 	nDotc0 = max(min(abs(nDotc0), 1), 0);
+	nDotc0 = pow(nDotc0, 5);
 	clip_xy = mix(1 - distortion, 1 + distortion, nDotc0) * clip_xy;
 
 	vec2 ndc = ((clip_xy / clipSpace.w) / 2.0 + 0.5);

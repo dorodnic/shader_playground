@@ -20,14 +20,25 @@ uniform vec3 lightPosition;
 
 void main(void){
 	vec4 worldPosition = transformationMatrix * vec4(position.xyz, 1.0);
-	
 
 	textCoords = textureCoords;
+
+	surfaceNormal = (transformationMatrix * vec4(normal, 0.0)).xyz;
+
+	vec3 norm = normalize(surfaceNormal);
+	vec3 tang = normalize((transformationMatrix * vec4(tangent, 0.0)).xyz);
+	vec3 bitang = normalize(cross(norm, tang));
+
+	mat3 toTangentSpace = mat3(
+		tang.x, bitang.x, norm.x,
+		tang.y, bitang.y, norm.y,
+		tang.z, bitang.z, norm.z
+	);
 
 	clipSpace = projectionMatrix * cameraMatrix * worldPosition;
 	gl_Position = clipSpace;
 
-	surfaceNormal = (transformationMatrix * vec4(normal, 0.0)).xyz;
-	toLightVector = lightPosition - worldPosition.xyz;
-	toCameraVector = (inverse(cameraMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz - worldPosition.xyz;
+	surfaceNormal = toTangentSpace * surfaceNormal;
+	toLightVector = toTangentSpace * (lightPosition - worldPosition.xyz);
+	toCameraVector = toTangentSpace * ((inverse(cameraMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz - worldPosition.xyz);
 }

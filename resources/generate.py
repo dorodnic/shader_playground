@@ -1,54 +1,1 @@
-import cv2
-import numpy as np
-from matplotlib import pyplot as plt
-import math
-
-w = 1024;
-d = 8;
-
-tex = np.zeros((w,w,4), np.uint8)
-
-cv2.rectangle(tex, (0,0), (w, w), (183, 138, 18, 127), -1, 8, 0);
-cv2.rectangle(tex, (10*d,0), (w - 10*d, w/2-7*d), (183, 138, 18, 0), -1, 8, 0);
-cv2.rectangle(tex, (12*d,0), (w - 12*d, w/2-5*d), (183, 138, 18, 0), -1, 8, 0);
-cv2.circle(tex, (12*d, w/2-7*d), 2*d, (183, 138, 18, 0), -1, 8, 0);
-cv2.circle(tex, (w - 12*d, w/2-7*d), 2*d, (183, 138, 18, 0), -1, 8, 0);
-
-cv2.rectangle(tex, (10*d,w/2 + 7*d), (w - 10*d, w), (183, 138, 18, 0), -1, 8, 0);
-cv2.rectangle(tex, (12*d,w/2 + 5*d), (w - 12*d, w), (183, 138, 18, 0), -1, 8, 0);
-cv2.circle(tex, (12*d, w/2 + 7*d), 2*d, (183, 138, 18, 0), -1, 8, 0);
-cv2.circle(tex, (w - 12*d, w/2 + 7*d), 2*d, (183, 138, 18, 0), -1, 8, 0);
-
-cv2.rectangle(tex, (0,0), (7*d, w), (131, 141, 149, 255), -1, 8, 0);
-cv2.rectangle(tex, (w,0), (w - 7*d, w), (131, 141, 149, 255), -1, 8, 0);
-cv2.rectangle(tex, (0,w/2 - 2*d), (w, w/2 + 2*d), (131, 141, 149, 255), -1, 8, 0);
-
-def draw_hex(tex, x0, y0, r, c):
-    lt = []
-    for i in range(0, 6):
-        t = i / 6.0
-        x = x0 + math.cos(t * 2 * 3.14) * r
-        y = y0 + math.sin(t * 2 * 3.14) * r
-        lt.append([int(x),int(y)]);
-    cv2.fillConvexPoly(tex, np.asarray(lt), c);
-
-for i in range(3*d, w/2 - 2*d, 3*d + 4):
-    dark_grey = (131 - 30, 141- 30, 149- 30, 255);
-    draw_hex(tex, 2*d, i, 1.5*d, dark_grey)
-    draw_hex(tex, 5*d, i + 1.5*d + 2, 1.5*d, dark_grey)
-    draw_hex(tex, w - 2*d, i, 1.5*d, dark_grey)
-    draw_hex(tex, w - 5*d, i + 1.5*d + 2, 1.5*d, dark_grey)
-
-for i in range(w/2 + 3*d, w - 3*d, 3*d + 4):
-    dark_grey = (131 - 30, 141- 30, 149- 30, 255);
-    draw_hex(tex, 2*d, i + 1.5*d + 2, 1.5*d, dark_grey)
-    draw_hex(tex, 5*d, i, 1.5*d, dark_grey)
-    draw_hex(tex, w - 2*d, i + 1.5*d + 2, 1.5*d, dark_grey)
-    draw_hex(tex, w - 5*d, i, 1.5*d, dark_grey)
-
-cv2.imshow('image', tex)
-plt.imshow(tex), plt.colorbar(),plt.show()
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
-cv2.imwrite("texture.png", tex)
+import cv2from numpy import *from scipy import linalgfrom matplotlib import pyplot as pltimport randomimport mathw = 1024;d = 12;tex = zeros((w,w,4), uint8)hmap = zeros((w,w,1), uint8)noise = zeros((w,w), uint8)cv2.randn(noise, (0), (5));hmap[0:w, 0:w, 0] = 40;for i in range(1, w / 2):    x = random.randint(0,w)    y = random.randint(0,w)    s = random.uniform(0,2*math.pi)    l = random.uniform(1,d)    t = random.randint(1,2)    c = random.randint(10, 40)    x2 = x + math.cos(s)*l*l;    y2 = y + math.sin(s)*l*l;    cv2.line(hmap, (x,y), (int(x2),int(y2)), c, 1);for i in range(1, w / 10):    x = random.randint(0,w)    y = random.randint(0,w)    s = random.randint(0, 360)    e = s + random.randint(0, 50)    s1 = min(s, e)    e1 = max(s, e)    r1 = random.randint(0,w / 2)    r2 = int(r1 * random.uniform(0.7,1.3))        c = random.randint(20, 40)    cv2.ellipse(hmap, (x,y), (r1, r2), 0, s1, e1, c, 1)hmap[0:w, 0:7*d, 0] = noise[0:w, 0:7*d] + 50;hmap[0:w, w-7*d:w, 0] = noise[0:w, w-7*d:w] + 50;hmap[0:w, w-7*d:w, 0] = noise[0:w, w-7*d:w] + 50;hmap[w/2 - 2*d:w/2 + 2*d, 0:w, 0] = noise[w/2 - 2*d:w/2 + 2*d, 0:w] + 50;hmap = cv2.blur(hmap,(3,3))cv2.rectangle(tex, (0,0), (w, w), (183, 138, 18, 127), -1, 8, 0);cv2.rectangle(tex, (10*d,0), (w - 10*d, w/2-7*d), (183, 138, 18, 0), -1, 8, 0);cv2.rectangle(tex, (12*d,0), (w - 12*d, w/2-5*d), (183, 138, 18, 0), -1, 8, 0);cv2.circle(tex, (12*d, w/2-7*d), 2*d, (183, 138, 18, 0), -1, 8, 0);cv2.circle(tex, (w - 12*d, w/2-7*d), 2*d, (183, 138, 18, 0), -1, 8, 0);cv2.rectangle(tex, (10*d,w/2 + 7*d), (w - 10*d, w), (183, 138, 18, 0), -1, 8, 0);cv2.rectangle(tex, (12*d,w/2 + 5*d), (w - 12*d, w), (183, 138, 18, 0), -1, 8, 0);cv2.circle(tex, (12*d, w/2 + 7*d), 2*d, (183, 138, 18, 0), -1, 8, 0);cv2.circle(tex, (w - 12*d, w/2 + 7*d), 2*d, (183, 138, 18, 0), -1, 8, 0);cv2.rectangle(tex, (0,0), (7*d, w), (131, 141, 149, 255), -1, 8, 0);cv2.rectangle(tex, (w,0), (w - 7*d, w), (131, 141, 149, 255), -1, 8, 0);cv2.rectangle(tex, (0,w/2 - 2*d), (w, w/2 + 2*d), (131, 141, 149, 255), -1, 8, 0);def draw_hex(tex, hmap, x0, y0, r, c):    lt = []    for i in range(0, 6):        t = i / 6.0        x = x0 + math.cos(t * 2 * 3.14) * r        y = y0 + math.sin(t * 2 * 3.14) * r        lt.append([int(x),int(y)]);    cv2.fillConvexPoly(tex, asarray(lt), c);    cv2.fillConvexPoly(hmap, asarray(lt), (30));for i in range(3*d, w/2 - 2*d, 3*d + 4):    dark_grey = (131 - 50, 141- 50, 149- 50, 255);    draw_hex(tex, hmap, 2*d, i, 1.5*d, dark_grey)    draw_hex(tex, hmap, 5*d, i + 1.5*d + 2, 1.5*d, dark_grey)    draw_hex(tex, hmap, w - 2*d, i, 1.5*d, dark_grey)    draw_hex(tex, hmap, w - 5*d, i + 1.5*d + 2, 1.5*d, dark_grey)for i in range(w/2 + 3*d, w - 3*d, 3*d + 4):    dark_grey = (131 - 50, 141- 50, 149- 50, 255);    draw_hex(tex, hmap, 2*d, i + 1.5*d + 2, 1.5*d, dark_grey)    draw_hex(tex, hmap, 5*d, i, 1.5*d, dark_grey)    draw_hex(tex, hmap, w - 2*d, i + 1.5*d + 2, 1.5*d, dark_grey)    draw_hex(tex, hmap, w - 5*d, i, 1.5*d, dark_grey)##grad_x = cv2.Sobel(hmap,cv2.CV_16S,1,0,ksize=3)##grad_y = cv2.Sobel(hmap,cv2.CV_16S,0,1,ksize=3)####grad_x = cv2.convertScaleAbs(grad_x,0.125,127.5);##grad_y = cv2.convertScaleAbs(grad_y,0.125,127.5);####nmap = zeros((w,w,3), uint8)##for i in range(0,w-1):##    for j in range(0, w-1):##        x = (grad_x[j,i]*2)/255.0 - 1.0;##        y = (grad_y[j,i]*2)/255.0 - 1.0;####        dx = array([1.0, 0.0, x]);##        dx = dx / linalg.norm(dx);####        dy = array([0.0, 1.0, y]);##        dy = dy / linalg.norm(dy);####        nm = cross(dx, dy);##        nm = nm / linalg.norm(nm);####        nm = (nm * 128) + array([128.0, 128.0, 128.0]);####        nmap[j,i, 2] = int(nm[0]);##        nmap[j,i, 1] = int(nm[1]);##        nmap[j,i, 0] = int(nm[2]);##        ##    print(i);##dxNeg = grad_x * -1##dyNeg = grad_y * -1####dxSquare = power(grad_x, 2)##dySquare = power(grad_y, 2)####nxSquareRoot = sqrt(dxSquare + dxSquare + 1)##nySquareRoot = sqrt(dySquare + dySquare + 1)##nzSquareRoot = sqrt(dxSquare + dxSquare + 1)####nx = divide(dxNeg,nxSquareRoot)##ny = divide(dyNeg,nySquareRoot)##nz = divide(dxNeg,nzSquareRoot)####R = divide(nx +1,2)##G = divide(ny +1,2)##B = nx#####nmap = stack(R,G,B)##nmap = zeros((w,w,3), uint8)##nmap[..., 0] = B * 255##nmap[..., 1] = G * 255##nmap[..., 2] = R * 255#cv2.imshow('image', nmap)#cv2.waitKey(0)hmap = cv2.cvtColor(hmap, cv2.COLOR_GRAY2RGB);cv2.imshow('image', hmap)cv2.waitKey(0)cv2.imshow('image', tex)plt.imshow(tex), plt.colorbar(),plt.show()cv2.waitKey(0)cv2.destroyAllWindows()cv2.imwrite("texture_hmap.png", hmap)cv2.imwrite("texture.png", tex)

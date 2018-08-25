@@ -76,6 +76,9 @@ int main(int argc, char* argv[])
     texture mish;
     mish.upload("resources/texture.png");
 
+    texture normals;
+    normals.upload("resources/normal_map.png");
+
     texture world;
     world.upload("resources/Diffuse_2K.png");
 
@@ -148,6 +151,7 @@ int main(int argc, char* argv[])
     auto draw_tubes = [&](texture& color) {
         mish.bind(0);
         color.bind(1);
+        normals.bind(2);
         shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 0.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
@@ -162,6 +166,7 @@ int main(int argc, char* argv[])
 
         color.unbind();
         mish.unbind();
+        normals.unbind();
     };
 
     while (app)

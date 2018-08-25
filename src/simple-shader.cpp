@@ -26,10 +26,12 @@ simple_shader::simple_shader()
 
     auto texture0_sampler_location = _shader->get_uniform_location("textureSampler");
     auto refractionSampler_location = _shader->get_uniform_location("refractionSampler");
+    auto normalSampler_location = _shader->get_uniform_location("textureNormalSampler");
 
     _shader->begin();
     _shader->load_uniform(texture0_sampler_location, 0);
     _shader->load_uniform(refractionSampler_location, 1);
+    _shader->load_uniform(normalSampler_location, 2);
     _shader->end();
 }
 
