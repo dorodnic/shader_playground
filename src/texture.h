@@ -15,6 +15,11 @@ public:
     void unbind() const;
 
     uint32_t get() const { return _texture; }
+
+    void set_options(bool linear, bool mipmap);
+
 private:
     uint32_t _texture;
+    bool _mipmap = true;
+    bool _linear = true;
 };

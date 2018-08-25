@@ -14,6 +14,12 @@ void texture::bind(int texture_slot) const
     glBindTexture(GL_TEXTURE_2D, _texture);
 }
 
+void texture::set_options(bool linear, bool mipmap)
+{
+    _linear = linear;
+    _mipmap = mipmap;
+}
+
 void texture::unbind() const
 {
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -66,9 +72,17 @@ void texture::upload(int channels, int bits_per_channel, int width, int height, 
     }
     else throw std::runtime_error("Unsupported image format!");
 
+    glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    
+    if (!_mipmap)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, _linear ? GL_LINEAR : GL_NEAREST);
+    }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -1);
+    }
+
     unbind();
 }

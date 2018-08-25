@@ -13,13 +13,17 @@ struct mouse_info
 class window
 {
 public:
-    window(int w, int h, const char* title);
+    window(int w, int h, const char* title, 
+        int multisample = 4, bool fullscreen = false);
     ~window();
 
-    operator bool();
+    bool is_alive();
 
     int width() const { return _w; }
     int height() const { return _h; }
+
+    bool fullscreen() const { return _fullscreen; }
+    int multisample() const { return _multisample; }
 
     void reset_viewport();
 
@@ -31,4 +35,6 @@ private:
     bool _first = true;
     mouse_info _mouse;
     float _scale_factor = 1.f;
+    const int _multisample = 4;
+    const bool _fullscreen = false;
 };

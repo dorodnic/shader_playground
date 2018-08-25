@@ -26,6 +26,7 @@ void window::reset_viewport()
     glfwGetFramebufferSize(_window, &_w, &_h);
     glViewport(0, 0, _w, _h);
     glfwGetWindowSize(_window, &_w, &_h);
+    if (_multisample) glEnable(GL_MULTISAMPLE);
 }
 
 window::~window()
@@ -34,6 +35,8 @@ window::~window()
     {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        glfwSwapBuffers(_window);
     }
 
     ImGui_ImplOpenGL3_Shutdown();
@@ -44,7 +47,7 @@ window::~window()
     glfwTerminate();
 }
 
-window::operator bool() 
+bool window::is_alive()
 {
     if (!_first)
     {
@@ -64,9 +67,7 @@ window::operator bool()
     _mouse.mouse_wheel = 0;
     glfwPollEvents();
 
-    glfwGetFramebufferSize(_window, &_w, &_h);
-    glViewport(0, 0, _w, _h);
-    glfwGetWindowSize(_window, &_w, &_h);
+    reset_viewport();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -78,8 +79,8 @@ window::operator bool()
     return res;
 }
 
-window::window(int w, int h, const char* title)
-    : _w(w), _h(h)
+window::window(int w, int h, const char* title, int multisample, bool fullscreen)
+    : _w(w), _h(h), _fullscreen(fullscreen), _multisample(multisample)
 {
     if (!glfwInit()) {
         throw util_exception("Can't initialize GLFW!");
@@ -102,7 +103,11 @@ window::window(int w, int h, const char* title)
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
 
-    _window = glfwCreateWindow(_w, _h, title, nullptr, nullptr);
+    glfwWindowHint(GLFW_SAMPLES, _multisample);
+
+    _window = glfwCreateWindow(_w, _h, title, 
+        fullscreen ? glfwGetPrimaryMonitor() : nullptr, 
+        nullptr);
     glfwMakeContextCurrent(_window);
     glfwSwapInterval(0);
 

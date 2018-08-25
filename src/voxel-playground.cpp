@@ -65,41 +65,52 @@ obj_mesh generate_tube(float length, float radius, int a, int b)
     return res;
 }
 
+struct graphic_objects
+{
+    texture mish, normals, world, cat_tex;
+    std::shared_ptr<vao> earth, tube, cat;
+    simple_shader shader;
+    std::shared_ptr<fbo> fbo1, fbo2;
+};
+
 int main(int argc, char* argv[])
 {
     START_EASYLOGGINGPP(argc, argv);
 
-    window app(1280, 720, "Shader Playground");
+    auto app = std::make_unique<window>(1280, 720, "Shader Playground");
 
     float progress = 0.f;
 
-    texture mish;
-    mish.upload("resources/texture.png");
+    auto go = std::make_shared<graphic_objects>();
 
-    texture normals;
-    normals.upload("resources/normal_map.png");
+    bool mipmap = true;
+    bool linear = true;
 
-    texture world;
-    world.upload("resources/Diffuse_2K.png");
+    auto reload_textures = [&]() {
+        go->mish.set_options(linear, mipmap);
+        go->mish.upload("resources/texture.png");
+
+        go->normals.set_options(linear, mipmap);
+        go->normals.upload("resources/normal_map.png");
+
+        go->world.set_options(linear, mipmap);
+        go->world.upload("resources/Diffuse_2K.png");
+
+        go->cat_tex.set_options(linear, mipmap);
+        go->cat_tex.upload("resources/cat_diff.tga");
+    };
 
     auto cylinder = generate_tube(3.f, 1.f, 5, 32);
-    auto cylinder_vao = vao::create(cylinder);
 
     loader ld("resources/earth.obj");
     while (!ld.ready());
-    auto earth_vao = vao::create(ld.get().front());
 
-    texture cat_tex;
-    cat_tex.upload("resources/cat_diff.tga");
     loader cat_ld("resources/cat.obj");
     while (!cat_ld.ready());
-    auto cat = vao::create(cat_ld.get().front());
 
     light l;
     l.position = { 100.f, 0.f, -20.f };
     l.colour = { 1.f, 0.f, 0.f };
-
-    simple_shader shader;
 
     auto shineDamper = 10.f;
     auto reflectivity = 1.f;
@@ -107,15 +118,44 @@ int main(int argc, char* argv[])
     auto light_angle = 0.f;
     bool rotate_light = true;
 
-    camera cam(app);
+    camera cam(*app);
     cam.look_at({ 0.f, 0.f, 0.f });
 
-    fbo fbo1(640, 480);
-    fbo1.createTextureAttachment();
-    fbo1.createDepthTextureAttachment();
-    fbo fbo2(640, 480);
-    fbo2.createTextureAttachment();
-    fbo2.createDepthTextureAttachment();
+    int2 fbo_resolutions[] = {
+        { 120, 90 },
+        { 320, 180 },
+        { 640, 480 },
+        { 800, 600 },
+        { 1280, 720 },
+    };
+    const char* fbo_resolution_names[] = { "120 x 90", "320 x 180", "640 x 480", "800 x 600", "1280 x 720" };
+    int fbo_resolution = 2;
+    int total_fbo_res = sizeof(fbo_resolutions) / sizeof(fbo_resolutions[0]);
+
+    auto reload_fbos = [&]() {
+        go->fbo1 = std::make_shared<fbo>(
+            fbo_resolutions[fbo_resolution].x, 
+            fbo_resolutions[fbo_resolution].y);
+        go->fbo1->createTextureAttachment();
+        go->fbo1->createDepthTextureAttachment();
+
+        go->fbo2 = std::make_shared<fbo>(
+            fbo_resolutions[fbo_resolution].x,
+            fbo_resolutions[fbo_resolution].y);
+        go->fbo2->createTextureAttachment();
+        go->fbo2->createDepthTextureAttachment();
+    };
+
+    auto reload_graphics = [&]() {
+        go = std::make_shared<graphic_objects>();
+        reload_textures();
+        go->tube = vao::create(cylinder);
+        go->cat = vao::create(cat_ld.get().front());
+        go->earth = vao::create(ld.get().front());
+
+        reload_fbos();
+    };
+    reload_graphics();
 
     float4x4 matrix;
 
@@ -128,48 +168,70 @@ int main(int argc, char* argv[])
         float4 q(x, y, z, w);
         q = normalize(q);
 
-        shader.set_model(mul(
+        go->shader.set_model(mul(
             translation_matrix(float3{ 0.f, -9.f, -5.f }),
             scaling_matrix(float3{ 2.f, 2.f, 2.f }),
             rotation_matrix(q)
         ));
 
-        world.bind(0);
-        earth_vao->draw();
-        world.unbind();
+        go->world.bind(0);
+        go->earth->draw();
+        go->world.unbind();
 
-        shader.set_model(mul(
+        go->shader.set_model(mul(
             translation_matrix(float3{ 5.f, 0.f, -2.f }),
             scaling_matrix(float3{ 2.f, 2.f, 2.f })
         ));
 
-        cat_tex.bind(0);
-        cat->draw();
-        cat_tex.unbind();
+        go->cat_tex.bind(0);
+        go->cat->draw();
+        go->cat_tex.unbind();
     };
 
     auto draw_tubes = [&](texture& color) {
-        mish.bind(0);
+        go->mish.bind(0);
         color.bind(1);
-        normals.bind(2);
-        shader.set_model(mul(
+        go->normals.bind(2);
+        go->shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 0.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
-        cylinder_vao->draw();
+        go->tube->draw();
 
-        shader.set_model(mul(
+        go->shader.set_model(mul(
             translation_matrix(float3{ 3.f, 0.f, 0.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
-        cylinder_vao->draw();
+        go->tube->draw();
 
         color.unbind();
-        mish.unbind();
-        normals.unbind();
+        go->mish.unbind();
+        go->normals.unbind();
     };
 
-    while (app)
+    bool fullscreen = false;
+    bool msaa = true;
+    int multisample = 4;
+    int2 resolutions[] = {
+        { 1280, 720 },
+        { 1920, 1080 }
+    };
+    const char* resolution_names[] = { "1280 x 720", "1920 x 1080" };
+    int resolution = 0;
+    int total_resolutions = sizeof(resolutions) / sizeof(resolutions[0]);
+
+    int2 tex_settings[] = {
+        { 0, 0 }, { 1, 0 }, { 0, 1 }
+    };
+    int tex_setting = 2;
+    const char* tex_setting_names[] = { "Nearest", "Linear", "Mipmap" };
+    int total_tex_settings = sizeof(tex_settings) / sizeof(tex_settings[0]);
+
+    bool requires_reset = false;
+    bool do_reset = false;
+    bool exit = false;
+
+    while (app->is_alive() && !exit)
     {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
@@ -189,24 +251,24 @@ int main(int argc, char* argv[])
 
         t = cam.clock() / 10;
 
-        cam.update(app);
+        cam.update(*app);
 
-        shader.begin();
+        go->shader.begin();
 
-        shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
-        shader.set_light(l.position);
-        shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
+        go->shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
+        go->shader.set_light(l.position);
+        go->shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
 
-        fbo1.bind();
+        go->fbo1->bind();
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         draw_refractables(t);
 
-        fbo1.unbind();
+        go->fbo1->unbind();
 
 
-        fbo2.bind();
+        go->fbo2->bind();
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -214,30 +276,30 @@ int main(int argc, char* argv[])
 
         glCullFace(GL_FRONT);
 
-        shader.set_distortion(0.2f);
-        draw_tubes(fbo1.get_color_texture());
+        go->shader.set_distortion(0.2f);
+        draw_tubes(go->fbo1->get_color_texture());
 
-        fbo2.unbind();
+        go->fbo2->unbind();
 
-        app.reset_viewport();
+        app->reset_viewport();
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
 
-        draw_tubes(fbo1.get_color_texture());
+        draw_tubes(go->fbo1->get_color_texture());
 
         //--
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
-        shader.set_distortion(0.f);
-        draw_tubes(fbo2.get_color_texture());
+        go->shader.set_distortion(0.f);
+        draw_tubes(go->fbo2->get_color_texture());
 
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
         draw_refractables(t);
 
-        shader.end();
+        go->shader.end();
 
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
@@ -246,29 +308,115 @@ int main(int argc, char* argv[])
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos({ 0, 0 });
-        ImGui::SetNextWindowSize({ 250, static_cast<float>(app.height()) });
+        ImGui::SetNextWindowSize({ 250, static_cast<float>(app->height()) });
 
         ImGui::Begin("Control Panel", nullptr, flags);
 
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
-        ImGui::Text("Specular Dampening:");
         ImGui::PushItemWidth(-1);
-        ImGui::SliderFloat("##SpecDamp", &shineDamper, 0.f, 100.f);
+        if (ImGui::Button("Exit to Desktop", { 235, 0 }))
+            exit = true;
 
-        ImGui::Text("Reflectivity:");
-        ImGui::PushItemWidth(-1);
-        ImGui::SliderFloat("##Reflect", &reflectivity, 0.f, 3.f);
+        if (ImGui::CollapsingHeader("Light Settings"))
+        {
+            ImGui::Text("Specular Dampening:");
+            ImGui::PushItemWidth(-1);
+            ImGui::SliderFloat("##SpecDamp", &shineDamper, 0.f, 100.f);
 
-        ImGui::Text("Diffuse:");
-        ImGui::PushItemWidth(-1);
-        ImGui::SliderFloat("##Diffuse", &diffuse_level, 0.f, 1.f);
+            ImGui::Text("Reflectivity:");
+            ImGui::PushItemWidth(-1);
+            ImGui::SliderFloat("##Reflect", &reflectivity, 0.f, 3.f);
 
-        ImGui::Checkbox("Rotate Light", &rotate_light);
-        ImGui::PushItemWidth(-1);
-        ImGui::SliderFloat("##Rotation", &light_angle, 0.f, 2 * 3.14f);
+            ImGui::Text("Diffuse:");
+            ImGui::PushItemWidth(-1);
+            ImGui::SliderFloat("##Diffuse", &diffuse_level, 0.f, 1.f);
+
+            ImGui::Checkbox("Rotate Light", &rotate_light);
+            ImGui::PushItemWidth(-1);
+            ImGui::SliderFloat("##Rotation", &light_angle, 0.f, 2 * 3.14f);
+        }
+
+        if (ImGui::CollapsingHeader("Texture Settings"))
+        {
+            if (ImGui::Combo("Filtering", &tex_setting,
+                tex_setting_names, total_tex_settings))
+            {
+                linear = tex_settings[tex_setting].x;
+                mipmap = tex_settings[tex_setting].y;
+                reload_textures();
+            }
+
+            if (ImGui::Combo("Refraction Resolution", &fbo_resolution,
+                fbo_resolution_names, total_fbo_res))
+            {
+                reload_fbos();
+            }
+        }
+
+        if (ImGui::CollapsingHeader("Window Settings"))
+        {
+            if (ImGui::Combo("Resolution", &resolution, 
+                resolution_names, total_resolutions)) 
+                requires_reset = true;
+
+            if (ImGui::Checkbox("Fullscreen", &fullscreen)) 
+                requires_reset = true;
+
+            if (ImGui::Checkbox("MSAA", &msaa)) 
+                requires_reset = true;
+
+            if (msaa)
+            {
+                if (ImGui::SliderInt("Samples", &multisample, 1, 16)) 
+                    requires_reset = true;
+            }
+
+            if (requires_reset)
+            {
+                if (ImGui::Button(" Apply "))
+                {
+                    do_reset = true;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(" Undo "))
+                {
+                    msaa = app->multisample() > 0;
+                    if (msaa) multisample = app->multisample();
+                    for (int i = 0; i < total_resolutions; i++)
+                    {
+                        if (resolutions[i].x == app->width() &&
+                            resolutions[i].y == app->height())
+                            resolution = i;
+                    }
+                    fullscreen = app->fullscreen();
+                    requires_reset = false;
+                }
+            }
+        }
 
         ImGui::End();
+
+        if (do_reset)
+        {
+            LOG(INFO) << "Releasing all OpenGL objects and Window";
+            go.reset();
+            app.reset();
+
+            LOG(INFO) << "Recreating the Window";
+            app = std::make_unique<window>(
+                resolutions[resolution].x, 
+                resolutions[resolution].y, 
+                "Shader Playground",
+                msaa ? multisample : 0, 
+                fullscreen);
+
+            LOG(INFO) << "Recreating all OpenGL objects";
+            reload_graphics();
+
+            do_reset = false;
+            requires_reset = false;
+        }
     }
 
     return EXIT_SUCCESS;
