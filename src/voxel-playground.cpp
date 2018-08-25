@@ -10,6 +10,7 @@
 #include "loader.h"
 #include "advanced-shader.h"
 #include "simple-shader.h"
+#include "tube-shader.h"
 #include "fbo.h"
 
 #include <easylogging++.h>
@@ -129,6 +130,7 @@ struct graphic_objects
     texture mish, normals, world, cat_tex;
     std::shared_ptr<vao> earth, tube, bent_tube, cat;
     simple_shader shader;
+    tube_shader tb_shader;
     std::shared_ptr<fbo> fbo1, fbo2;
 };
 
@@ -251,28 +253,28 @@ int main(int argc, char* argv[])
 
     auto draw_tubes = [&](texture& color) {
         go->mish.bind(0);
-        color.bind(1);
-        go->normals.bind(2);
-        go->shader.set_model(mul(
+        color.bind(2);
+        go->normals.bind(1);
+        go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 0.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
         go->tube->draw();
 
-        go->shader.set_model(mul(
+        go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 3.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
         go->tube->draw();
 
-        go->shader.set_model(mul(
+        go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, -3.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
         go->bent_tube->draw();
         //go->tube->draw();
 
-        go->shader.set_model(mul(
+        go->tb_shader.set_model(mul(
             translation_matrix(float3{ -3.f, 0.f, -4.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
@@ -341,7 +343,6 @@ int main(int argc, char* argv[])
 
         go->fbo1->unbind();
 
-
         go->fbo2->bind();
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -350,7 +351,14 @@ int main(int argc, char* argv[])
 
         glCullFace(GL_FRONT);
 
-        go->shader.set_distortion(0.2f);
+        go->shader.end();
+        go->tb_shader.begin();
+
+        go->tb_shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
+        go->tb_shader.set_light(l.position);
+        go->tb_shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
+        go->tb_shader.set_distortion(0.2f);
+
         draw_tubes(go->fbo1->get_color_texture());
 
         go->fbo2->unbind();
@@ -365,11 +373,14 @@ int main(int argc, char* argv[])
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
-        go->shader.set_distortion(0.f);
+        go->tb_shader.set_distortion(0.f);
         draw_tubes(go->fbo2->get_color_texture());
 
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
+
+        go->tb_shader.end();
+        go->shader.begin();
 
         draw_refractables(t);
 

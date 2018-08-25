@@ -1,11 +1,22 @@
 #include "simple-shader.h"
 
+simple_shader::simple_shader(std::unique_ptr<shader_program> shader)
+    : _shader(std::move(shader))
+{
+    init();
+}
+
 simple_shader::simple_shader()
 {
     _shader = shader_program::load(
         "resources/shaders/simple/simp-vertex.glsl",
         "resources/shaders/simple/simp-fragment.glsl");
 
+    init();
+}
+
+void simple_shader::init()
+{
     _shader->bind_attribute(0, "position");
     _shader->bind_attribute(1, "textureCoords");
     _shader->bind_attribute(2, "normal");
@@ -20,18 +31,13 @@ simple_shader::simple_shader()
     _ambient_location = _shader->get_uniform_location("ambient");
     _shine_location = _shader->get_uniform_location("shineDamper");
     _reflectivity_location = _shader->get_uniform_location("reflectivity");
-    _shine2_location = _shader->get_uniform_location("shineDamper2");
-    _reflectivity2_location = _shader->get_uniform_location("reflectivity2");
-    _distortion_location = _shader->get_uniform_location("distortion");
 
     auto texture0_sampler_location = _shader->get_uniform_location("textureSampler");
-    auto refractionSampler_location = _shader->get_uniform_location("refractionSampler");
     auto normalSampler_location = _shader->get_uniform_location("textureNormalSampler");
 
     _shader->begin();
     _shader->load_uniform(texture0_sampler_location, 0);
-    _shader->load_uniform(refractionSampler_location, 1);
-    _shader->load_uniform(normalSampler_location, 2);
+    _shader->load_uniform(normalSampler_location, 1);
     _shader->end();
 }
 
@@ -41,11 +47,6 @@ void simple_shader::end() { _shader->end(); }
 void simple_shader::set_model(const float4x4& model)
 {
     _shader->load_uniform(_transformation_matrix_location, model);
-}
-
-void simple_shader::set_distortion(float d)
-{
-    _shader->load_uniform(_distortion_location, d);
 }
 
 void simple_shader::set_mvp(const float4x4& model,
@@ -67,7 +68,5 @@ void simple_shader::set_material_properties(
 {
     _shader->load_uniform(_shine_location, shine);
     _shader->load_uniform(_reflectivity_location, reflectivity);
-    _shader->load_uniform(_shine2_location, shine * 2);
-    _shader->load_uniform(_reflectivity2_location, reflectivity * 2);
     _shader->load_uniform(_ambient_location, ambient);
 }
