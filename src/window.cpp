@@ -79,6 +79,11 @@ bool window::is_alive()
     return res;
 }
 
+double window::get_time() const
+{
+    return glfwGetTime();
+}
+
 window::window(int w, int h, const char* title, int multisample, bool fullscreen)
     : _w(w), _h(h), _fullscreen(fullscreen), _multisample(multisample)
 {

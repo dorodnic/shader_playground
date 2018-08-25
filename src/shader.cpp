@@ -25,6 +25,11 @@ void shader_program::load_uniform(int location, bool value)
     load_uniform(location, value ? 1.f : 0.f);
 }
 
+void shader_program::load_uniform(int location, const float2& vec)
+{
+    glUniform2f(location, vec.x, vec.y);
+}
+
 void shader_program::load_uniform(int location, const float3& vec)
 {
     glUniform3f(location, vec.x, vec.y, vec.z);

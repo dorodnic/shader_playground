@@ -16,27 +16,24 @@ void camera::look_at(float3 at)
     _target = std::move(at);
 }
 
-camera::camera(const window& w, float fov, float n, float f)
+camera::camera(const window& w, bool perspective, float fov, float n, float f)
+    : _perspective(perspective)
 {
-    _projection = create_perspective_projection_matrix(w.width(), w.height(), 120, 0.1f, 1000.f);
+    if (perspective)
+    {
+        _projection = create_perspective_projection_matrix(w.width(), w.height(), fov, 0.1f, 1000.f);
+    }
+    else
+    {
+        _projection = create_orthographic_projection_matrix(w.width(), w.height(), fov, 0.1f, 1000.f);
+    }
+    
     _view = identity_matrix();
-
-    using namespace std::chrono;
-    _start = high_resolution_clock::now();
 
     _prev_mouse = w.get_mouse();
 }
 
-float camera::clock() const
-{
-    using namespace std::chrono;
-    auto now = high_resolution_clock::now();
-    auto diff = duration_cast<milliseconds>(now - _start).count();
-    auto elapsed_sec = diff / 1000.f;
-    return elapsed_sec;
-}
-
-void camera::update(const window& w)
+void camera::update(const window& w, bool force)
 {
     _up = { 0.f, 1.f, 0.f };
     auto dir = _target - _pos;
@@ -68,7 +65,7 @@ void camera::update(const window& w)
         _target -= horizontal_step;
     }
 
-    if (w.get_mouse().x > 250)
+    if (w.get_mouse().x > 250 || force)
     {
         arcball_camera_update(
             (float*)&_pos, (float*)&_target, (float*)&_up, (float*)&_view,

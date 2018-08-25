@@ -25,6 +25,8 @@ public:
     bool fullscreen() const { return _fullscreen; }
     int multisample() const { return _multisample; }
 
+    double get_time() const;
+
     void reset_viewport();
 
     const mouse_info& get_mouse() const { return _mouse; }

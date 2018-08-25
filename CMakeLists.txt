@@ -17,6 +17,8 @@ set(SHADERS resources/shaders/advanced/adv-fragment.glsl
             resources/shaders/simple/simp-vertex.glsl
             resources/shaders/tube/tube-fragment.glsl
             resources/shaders/tube/tube-vertex.glsl
+            resources/shaders/planar/plane-fragment.glsl
+            resources/shaders/planar/plane-vertex.glsl
             )
 
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -26,6 +28,8 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/shaders/simple/simp-vertex.glsl
                   resources/shaders/tube/tube-fragment.glsl
                   resources/shaders/tube/tube-vertex.glsl
+                  resources/shaders/planar/plane-fragment.glsl
+                  resources/shaders/planar/plane-vertex.glsl
                   resources/mish.jpg
                   resources/mish_dark.jpg
                   resources/texture.png
@@ -81,8 +85,10 @@ endif()
 add_executable(voxel-playground 
     src/voxel-playground.cpp 
     src/shader.cpp src/shader.h 
+    src/procedural.cpp src/procedural.h
     src/advanced-shader.cpp src/advanced-shader.h
     src/simple-shader.cpp src/simple-shader.h
+    src/texture-2d-shader.cpp src/texture-2d-shader.h
     src/tube-shader.cpp src/tube-shader.h
     src/window.cpp src/window.h 
     src/texture.cpp src/texture.h 

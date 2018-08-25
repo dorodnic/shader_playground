@@ -46,6 +46,7 @@ public:
 
     int get_uniform_location(const std::string& name);
     void load_uniform(int location, float value);
+    void load_uniform(int location, const float2& vec);
     void load_uniform(int location, const float3& vec);
     void load_uniform(int location, bool value);
     void load_uniform(int location, int value);

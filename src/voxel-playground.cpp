@@ -12,6 +12,8 @@
 #include "simple-shader.h"
 #include "tube-shader.h"
 #include "fbo.h"
+#include "procedural.h"
+#include "texture-2d-shader.h"
 
 #include <easylogging++.h>
 INITIALIZE_EASYLOGGINGPP
@@ -20,110 +22,54 @@ INITIALIZE_EASYLOGGINGPP
 
 #include <math.h>
 
-obj_mesh generate_tube(float length, 
-                       float radius,
-                       float bend,
-                       int a, int b)
+class plane_2d
 {
-    obj_mesh res;
+public:
+    plane_2d(float2 pos, float2 scale)
+        : _position(std::move(pos)), 
+          _scale(std::move(scale)),
+          _geometry(vao::create(create_mesh()))
+    {
 
-    float pi = 2 * acos(-1);
-    int start = 0;
+    }
 
-    auto toidx = [&](int i, int j) {
-        return i * (b + 1) + j + start;
-    };
+    void draw(texture_2d_shader& shader, texture& tex)
+    {
+        shader.begin();
+        shader.set_position_and_scale(_position, _scale);
+        tex.bind(0);
+        _geometry->draw();
+        tex.unbind();
+        shader.end();
+    }
 
-    auto generate = [&](float r) {
-        for (int i = 0; i <= a; i++)
-        {
-            auto ti = (float)i / a;
-            for (int j = 0; j <= b; j++)
-            {
-                auto tj = (float)j / b;
+private:
+    static obj_mesh create_mesh()
+    {
+        obj_mesh res;
 
-                auto z = (length / 2) * ti + (-length / 2) * (1 - ti);
+        res.positions.emplace_back(-1.f, -1.f, 0.f);
+        res.positions.emplace_back(1.f, -1.f, 0.f);
+        res.positions.emplace_back(1.f, 1.f, 0.f);
+        res.positions.emplace_back(-1.f, 1.f, 0.f);
+        res.normals.resize(4, { 0.f, 0.f, 0.f });
+        res.tangents.resize(4, { 0.f, 0.f, 0.f });
+        
+        res.uvs.emplace_back(0.f, 0.f);
+        res.uvs.emplace_back(1.f, 0.f);
+        res.uvs.emplace_back(1.f, 1.f);
+        res.uvs.emplace_back(-0.f, 1.f);
 
-                float3 tube_center{ 0.f, 0.f, z };
+        res.indexes.emplace_back(0, 1, 2);
+        res.indexes.emplace_back(2, 3, 0);
 
-                auto x = sinf(tj * pi) * r;
-                auto y = -cosf(tj * pi) * r;
+        return res;
+    }
 
-                auto curved_part = 0.6f;
-                auto first_part = (1.f - curved_part) / 2.f;
-
-                float2 xz{ x, 0 };
-                if (!bend) xz.y = z;
-                else
-                {
-                    float2 tc{ 0.f, 0.f };
-
-                    if (ti <= first_part)
-                    {
-                        auto K = (length - radius * 2.f) / 2.f;
-                        xz.y = -xz.x - K;
-                        tc.y = -K;
-                        xz.x = (length / 2) * ti + (-length / 2) * (1 - ti) - K;
-                        tc.x = (length / 2) * ti + (-length / 2) * (1 - ti) - K;
-
-                        tube_center = { tc.x, 0, tc.y };
-                    }
-                    else if (ti <= (1.f - first_part))
-                    {
-                        float t = (ti - first_part) / curved_part;
-                        t = std::max(0.f, std::min(1.f, t));
-                        float theta = bend * (1 - t) * pi / 4;
-                        float2x2 R{
-                            { cosf(theta), -sin(theta) },
-                            { sinf(theta), cosf(theta) },
-                        };
-                        xz = mul(inverse(R), xz);
-                        tc = mul(inverse(R), tc);
-
-                        float C = length * (curved_part + first_part) - radius;
-                        float2 translation{ cosf(theta) * C - C,
-                            sinf(theta) * C + length / 2 - length * first_part };
-
-                        xz += translation;
-                        tc += translation;
-
-                        tube_center = { tc.x, 0, tc.y };
-                    }
-                    else
-                    {
-                        xz.y = (length / 2) * ti + (-length / 2) * (1 - ti);
-                    }
-                }
-                float3 point{ xz.x, y, xz.y };
-                res.positions.push_back(point);
-
-                float3 n = point - tube_center;
-
-                res.normals.push_back(normalize(n));
-
-                res.uvs.emplace_back(ti, tj * length / radius + 0.5f);
-
-                if (i < a && j < b)
-                {
-                    auto curr = toidx(i, j);
-                    auto next_a = toidx(i + 1, j);
-                    auto next_b = toidx(i, j + 1);
-                    auto next_ab = toidx(i + 1, j + 1);
-                    res.indexes.emplace_back(curr, next_b, next_a);
-                    res.indexes.emplace_back(next_a, next_b, next_ab);
-                }
-            }
-        }
-    };
-
-    generate(radius);
-    start = res.positions.size();
-    generate(0.85f * radius);
-
-    res.calculate_tangents();
-
-    return res;
-}
+    float2 _position;
+    float2 _scale;
+    std::shared_ptr<vao> _geometry;
+};
 
 struct graphic_objects
 {
@@ -131,7 +77,10 @@ struct graphic_objects
     std::shared_ptr<vao> earth, tube, bent_tube, cat;
     simple_shader shader;
     tube_shader tb_shader;
+    texture_2d_shader tex_2d_shader;
     std::shared_ptr<fbo> fbo1, fbo2;
+
+    std::shared_ptr<plane_2d> fdo_visualizer, fdo2_visualizer;
 };
 
 int main(int argc, char* argv[])
@@ -159,6 +108,9 @@ int main(int argc, char* argv[])
 
         go->cat_tex.set_options(linear, mipmap);
         go->cat_tex.upload("resources/cat_diff.tga");
+
+        go->fbo1->get_color_texture().set_options(linear, mipmap);
+        go->fbo2->get_color_texture().set_options(linear, mipmap);
     };
 
     auto cylinder = generate_tube(3.f, 1.f, 0, 1, 16);
@@ -174,14 +126,15 @@ int main(int argc, char* argv[])
     l.position = { 100.f, 0.f, -20.f };
     l.colour = { 1.f, 0.f, 0.f };
 
-    auto shineDamper = 10.f;
-    auto reflectivity = 1.f;
-    auto diffuse_level = 0.5f;
+    auto shineDamper = 60.f;
+    auto reflectivity = 0.5f;
+    auto diffuse_level = 0.6f;
     auto light_angle = 0.f;
     bool rotate_light = true;
+    float fov = 120.f;
 
-    camera cam(*app);
-    cam.look_at({ 0.f, 0.f, 0.f });
+    auto cam = std::make_unique<camera>(*app);
+    cam->look_at({ 0.f, 0.f, 0.f });
 
     int2 fbo_resolutions[] = {
         { 120, 90 },
@@ -210,13 +163,18 @@ int main(int argc, char* argv[])
 
     auto reload_graphics = [&]() {
         go = std::make_shared<graphic_objects>();
-        reload_textures();
         go->tube = vao::create(cylinder);
         go->bent_tube = vao::create(bent_cylinder);
         go->cat = vao::create(cat_ld.get().front());
         go->earth = vao::create(ld.get().front());
 
         reload_fbos();
+        reload_textures();
+
+        go->fdo_visualizer = std::make_shared<plane_2d>(
+            float2{ 0.8f, 0.8f }, float2{ 0.2f, 0.2f });
+        go->fdo2_visualizer = std::make_shared<plane_2d>(
+            float2{ 0.8f, 0.4f }, float2{ 0.2f, 0.2f });
     };
     reload_graphics();
 
@@ -242,8 +200,8 @@ int main(int argc, char* argv[])
         go->world.unbind();
 
         go->shader.set_model(mul(
-            translation_matrix(float3{ 5.f, 0.f, -2.f }),
-            scaling_matrix(float3{ 2.f, 2.f, 2.f })
+            translation_matrix(float3{ 0.f, -0.6f, -2.f }),
+            scaling_matrix(float3{ 1.5f, 1.5f, 1.5f })
         ));
 
         go->cat_tex.bind(0);
@@ -313,27 +271,27 @@ int main(int argc, char* argv[])
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
-        auto s = std::abs(std::sinf(cam.clock())) * 0.2f + 0.8f;
-        auto t = std::abs(std::sinf(cam.clock() + 5)) * 0.2f + 0.8f;
+        auto s = std::abs(std::sinf(app->get_time())) * 0.2f + 0.8f;
+        auto t = std::abs(std::sinf(app->get_time() + 5)) * 0.2f + 0.8f;
 
         if (rotate_light)
         {
-            light_angle = cam.clock();
+            light_angle = app->get_time();
             while (light_angle > 2 * 3.14) light_angle -= 2 * 3.14;
         }
 
         l.position = { 5.f * std::sinf(-light_angle), 1.5f, 5.f * std::cosf(-light_angle) };
         l.colour = { s, t, s };
 
-        t = cam.clock() / 10;
+        t = app->get_time() / 10;
 
-        cam.update(*app);
+        cam->update(*app);
 
         go->shader.begin();
 
         go->shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
         go->shader.set_light(l.position);
-        go->shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
+        go->shader.set_mvp(matrix, cam->view_matrix(), cam->projection_matrix());
 
         go->fbo1->bind();
         glClearColor(0, 0, 0, 1);
@@ -356,7 +314,7 @@ int main(int argc, char* argv[])
 
         go->tb_shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
         go->tb_shader.set_light(l.position);
-        go->tb_shader.set_mvp(matrix, cam.view_matrix(), cam.projection_matrix());
+        go->tb_shader.set_mvp(matrix, cam->view_matrix(), cam->projection_matrix());
         go->tb_shader.set_distortion(0.2f);
 
         draw_tubes(go->fbo1->get_color_texture());
@@ -388,6 +346,9 @@ int main(int argc, char* argv[])
 
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
+
+        go->fdo_visualizer->draw(go->tex_2d_shader, go->fbo1->get_color_texture());
+        go->fdo2_visualizer->draw(go->tex_2d_shader, go->fbo2->get_color_texture());
 
         const auto flags = ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove |
@@ -439,6 +400,45 @@ int main(int argc, char* argv[])
             }
         }
 
+        if (ImGui::CollapsingHeader("Camera Settings"))
+        {
+            auto pos = cam->get_position();
+            auto target = cam->get_target();
+
+            if (ImGui::RadioButton("Perspective Projection", cam->is_perspective()))
+            {
+                cam = std::make_unique<camera>(*app, true, fov);
+            }
+
+            if (ImGui::RadioButton("Orthographic Projection", !cam->is_perspective()))
+            {
+                cam = std::make_unique<camera>(*app, false, fov);
+            }
+
+            if (cam->is_perspective())
+            {
+                ImGui::Text("FOV:");
+                ImGui::PushItemWidth(-1);
+                if (ImGui::SliderFloat("##FOV", &fov, 60.f, 180.f))
+                {
+                    cam = std::make_unique<camera>(*app, true, fov);
+                }
+            }
+            else
+            {
+                ImGui::Text("Zoom:");
+                ImGui::PushItemWidth(-1);
+                if (ImGui::SliderFloat("##Zoom", &fov, 60.f, 180.f))
+                {
+                    cam = std::make_unique<camera>(*app, false, fov);
+                }
+            }
+
+            cam->set_position(pos);
+            cam->look_at(target);
+            cam->update(*app, true);
+        }
+
         if (ImGui::CollapsingHeader("Window Settings"))
         {
             if (ImGui::Combo("Resolution", &resolution, 
@@ -453,7 +453,9 @@ int main(int argc, char* argv[])
 
             if (msaa)
             {
-                if (ImGui::SliderInt("Samples", &multisample, 1, 16)) 
+                ImGui::Text("Samples:");
+                ImGui::PushItemWidth(-1);
+                if (ImGui::SliderInt("##Samples", &multisample, 1, 16)) 
                     requires_reset = true;
             }
 

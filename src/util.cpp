@@ -32,8 +32,8 @@ float4x4 create_orthographic_projection_matrix(float width, float height, float 
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             res[0][0] = 0.f;
-    res[0][0] = 2/width;
-    res[1][1] = 2/height;
+    res[0][0] = fov/width;
+    res[1][1] = fov/height;
     res[2][2] = -(2 / (f - n));
     res[3][0] = 0;
     res[3][1] = 0;
