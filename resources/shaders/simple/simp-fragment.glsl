@@ -24,9 +24,16 @@ void main(void){
 
 	vec4 normalMapValue = 2.0 * texture(textureNormalSampler, tex) - 1.0;
 
-	vec3 unitNormal = normalize(normalMapValue.xyz);
+	vec3 unitNormal = normalize(surfaceNormal.xyz);
+
 	vec3 lightDir = normalize(toLightVector);
 	vec3 unitCamera = normalize(toCameraVector);
+
+	float nDotc0 = dot(unitNormal, unitCamera);
+	if (nDotc0 > 0) {
+		unitNormal = normalize(normalMapValue.xyz);
+	}
+
 	vec3 refLightDir = reflect(-lightDir, unitNormal);
 
 	float specularFactor = dot(refLightDir, unitCamera);
@@ -38,7 +45,6 @@ void main(void){
 	vec4 finalSpec2 = dampedFactor2 * reflectivity2 * vec4(1.0, 1.0, 1.0, 1.0);
 
 	float nDotl = dot(unitNormal, lightDir);
-	float nDotc0 = dot(unitNormal, unitCamera);
 	float nDotc = abs(nDotc0);
 	float brightness = max(nDotl, ambient);
 	vec4 lighting = brightness * vec4(1.0, 1.0, 1.0, 1.0);
@@ -60,7 +66,7 @@ void main(void){
 
 	float s = smoothstep(-0.05, 0.05, nDotl);
 
-	float refract_factor = pow(nDotc, 0.7);
+	float refract_factor = pow(nDotc, 2);
 
 	vec4 lighting2 = lighting + finalSpec2;
 	vec4 lighting1 = lighting + finalSpec * (1 - refract_factor);
@@ -69,5 +75,5 @@ void main(void){
 	vec4 glassTotal = mix(color, color2, refract_factor);
 	out_color = mix(lighting2 *color, lighting1 * glassTotal, mask_val);
 
-	//out_color.x = nDotc0;
+	//out_color.x = tex.x;
 }
