@@ -8,6 +8,7 @@ in vec3 tangent;
 out vec3 surfaceNormal;
 out vec3 toLightVector;
 out vec3 toCameraVector;
+out vec3 refractedVector;
 
 out vec2 textCoords;
 out vec4 clipSpace;
@@ -40,5 +41,8 @@ void main(void){
 
 	surfaceNormal = toTangentSpace * surfaceNormal;
 	toLightVector = toTangentSpace * (lightPosition - worldPosition.xyz);
-	toCameraVector = toTangentSpace * ((inverse(cameraMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz - worldPosition.xyz);
+	vec3 cameraPos = (inverse(cameraMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	toCameraVector = toTangentSpace * (cameraPos - worldPosition.xyz);
+
+	refractedVector = refract(normalize(worldPosition.xyz - cameraPos), surfaceNormal, 1.0 / 1.33);
 }

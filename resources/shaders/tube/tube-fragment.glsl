@@ -5,6 +5,7 @@ in vec3 surfaceNormal;
 in vec3 toLightVector;
 in vec3 toCameraVector;
 in vec4 clipSpace;
+in vec3 refractedVector;
 
 out vec4 out_color;
 

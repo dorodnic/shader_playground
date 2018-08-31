@@ -17,8 +17,8 @@ void APIENTRY opengl_error_callback(GLenum source, GLenum type, GLuint id,
 {
     if (type == GL_DEBUG_TYPE_ERROR)
         LOG(ERROR) << message;
-    else
-        LOG(INFO) << message;
+    //else
+    //    LOG(INFO) << message;
 }
 
 void window::reset_viewport()

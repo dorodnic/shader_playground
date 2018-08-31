@@ -44,6 +44,7 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/cat.mtl
                   resources/cube.obj
                   resources/normal_map.png
+                  resources/white.png
                   )
 
     foreach(item IN LISTS RESOURCES)
