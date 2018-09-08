@@ -11,6 +11,8 @@ list(APPEND DEPENDENCIES ${OPENGL_LIBRARIES})
 add_definitions(-DELPP_THREAD_SAFE)
 add_definitions(-DNOMINMAX)
 
+add_subdirectory(third-party/voronoi)
+
 set(SHADERS resources/shaders/advanced/adv-fragment.glsl
             resources/shaders/advanced/adv-vertex.glsl
             resources/shaders/simple/simp-fragment.glsl
@@ -110,8 +112,9 @@ add_executable(voxel-playground
     )
 include_directories(voxel-playground third-party/imgui third-party/gl3w/include 
                     third-party/easyloggingpp third-party third-party/readerwriterqueue
+                    third-party/voronoi/include
                     third-party/linalg third-party/OBJ-Loader)
-target_link_libraries(voxel-playground ${DEPENDENCIES})
+target_link_libraries(voxel-playground ${DEPENDENCIES} voronoi)
 add_dependencies(voxel-playground resources-target)
 
 if(WIN32)

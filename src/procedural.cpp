@@ -6,6 +6,194 @@
 
 #include <easylogging++.h>
 
+#include "VoronoiDiagramGenerator.h"
+
+#include <random>
+
+bool sitesOrdered(const Point2& s1, const Point2& s2) {
+    if (s1.y < s2.y)
+        return true;
+    if (s1.y == s2.y && s1.x < s2.x)
+        return true;
+
+    return false;
+}
+
+float dist(float x)
+{
+    if (x < 0.5f) return fabsf(x);
+    else return fabsf(1.f - x);
+}
+
+float dist(const Point2& p)
+{
+    return std::min(dist(p[0]), dist(p[1]));
+}
+
+
+void generate_broken_glass(
+    std::vector<glass_peice>& peices)
+{
+    obj_mesh res;
+
+    //unsigned int dimension = 1000000;
+    int numSites = 100;
+
+    BoundingBox bbox(0, 1, 1, 0);
+
+    std::vector<Point2> tmpSites, sites;
+
+    tmpSites.reserve(numSites);
+    sites.reserve(numSites);
+
+    Point2 s;
+
+    std::default_random_engine generator;
+    std::normal_distribution<float> distribution(0.5f, 0.15f);
+    std::uniform_real_distribution<float> uniform(0.0f, 1.0f);
+
+    for (unsigned int i = 0; i < numSites; ++i) {
+        s.x = distribution(generator);
+        s.y = distribution(generator);
+        tmpSites.push_back(s);
+    }
+
+    //remove any duplicates that exist
+    std::sort(tmpSites.begin(), tmpSites.end(), sitesOrdered);
+    sites.push_back(tmpSites[0]);
+    for (Point2& s : tmpSites) {
+        if (s != sites.back()) sites.push_back(s);
+    }
+
+    VoronoiDiagramGenerator gen;
+    auto diagram = gen.compute(sites, bbox);
+
+    for (Cell* c : diagram->cells) 
+    {
+        Point2* first = nullptr;
+        float3 pos;
+
+        float min_dist = 1.f;
+
+        for (HalfEdge* e : c->halfEdges)
+        {
+            if (e->startPoint() && e->endPoint()) {
+                if (first == nullptr)
+                {
+                    first = e->startPoint();
+                    Point2& p3 = *first;
+                    pos = { (float)p3[0], (float)-p3[1], 0.f };
+                }
+                else
+                {
+                    Point2& p1 = *e->startPoint();
+                    Point2& p2 = *e->endPoint();
+
+                    auto dist_from_edge = std::min(dist(p1), dist(p2));
+                    if (dist_from_edge < min_dist)
+                        min_dist = dist_from_edge;
+                }
+            }
+        }
+
+        for (HalfEdge* e : c->halfEdges)
+        {
+            if (e->startPoint() && e->endPoint()) {
+                Point2& p1 = *e->startPoint();
+                Point2& p2 = *e->endPoint();
+                Point2& p3 = *first;
+
+                float3 a{ (float)p1[0], (float)-p1[1], 0.03f };
+                float3 b{ (float)p2[0], (float)-p2[1], 0.03f };
+                float3 c{ (float)p3[0], (float)-p3[1], 0.03f };
+
+                float3 a0{ (float)p1[0], (float)-p1[1], 0.f };
+                float3 b0{ (float)p2[0], (float)-p2[1], 0.f };
+                float3 c0{ (float)p3[0], (float)-p3[1], 0.f };
+
+                int idx = res.positions.size();
+
+                if (min_dist > 0.001f)
+                {
+                    res.positions.push_back(a - pos);
+                    res.positions.push_back(b - pos);
+                    res.positions.push_back(c - pos);
+
+                    res.indexes.emplace_back(idx, idx + 1, idx + 2);
+
+                    res.positions.push_back(a0 - pos);
+                    res.positions.push_back(b0 - pos);
+                    res.positions.push_back(c0 - pos);
+
+                    res.indexes.emplace_back(idx + 3, idx + 5, idx + 4);
+                    res.indexes.emplace_back(idx, idx + 3, idx + 1);
+                    res.indexes.emplace_back(idx + 1, idx + 3, idx + 4);
+
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+
+                    res.normals.push_back({ 0.f, 0.f, -1.f });
+                    res.normals.push_back({ 0.f, 0.f, -1.f });
+                    res.normals.push_back({ 0.f, 0.f, -1.f });
+
+                    res.uvs.push_back({ a.x, a.y });
+                    res.uvs.push_back({ b.x, b.y });
+                    res.uvs.push_back({ c.x, c.y });
+
+                    res.uvs.push_back({ a.x, a.y });
+                    res.uvs.push_back({ b.x, b.y });
+                    res.uvs.push_back({ c.x, c.y });
+                }
+                else
+                {
+                    res.positions.push_back(a - pos);
+                    res.positions.push_back(b - pos);
+                    res.positions.push_back(c - pos);
+
+                    res.positions.push_back((a + b) / 2.f - pos);
+                    res.positions.push_back((a + c) / 2.f - pos);
+                    res.positions.push_back((b + c) / 2.f - pos);
+
+                    res.indexes.emplace_back(idx, idx + 3, idx + 4);
+                    res.indexes.emplace_back(idx + 4, idx + 3, idx + 5);
+                    res.indexes.emplace_back(idx + 5, idx + 2, idx + 4);
+                    res.indexes.emplace_back(idx + 5, idx + 2, idx + 4);
+                    res.indexes.emplace_back(idx + 1, idx + 5, idx + 3);
+
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    res.normals.push_back({ 0.f, 0.f, 1.f });
+
+                    res.uvs.push_back({ a.x, a.y });
+                    res.uvs.push_back({ b.x, b.y });
+                    res.uvs.push_back({ c.x, c.y });
+
+                    res.uvs.push_back({ (a.x + b.x) / 2, (a.y + b.y) / 2 });
+                    res.uvs.push_back({ (a.x + c.x) / 2, (a.y + c.y) / 2 });
+                    res.uvs.push_back({ (b.x + c.x) / 2, (b.y + c.y) / 2 });
+                }
+            }
+        }
+
+        res.calculate_tangents();
+
+        float3 rotation{
+            uniform(generator),
+            uniform(generator),
+            uniform(generator)
+        };
+        rotation = normalize(rotation);
+
+        peices.push_back({ res, min_dist, rotation, pos });
+
+        res = obj_mesh();
+    }
+}
+
 obj_mesh apply(const obj_mesh& input, const float3x3& trans, const float3& t, bool flip_normals)
 {
     obj_mesh res;

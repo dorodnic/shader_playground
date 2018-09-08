@@ -3,6 +3,19 @@
 #include "util.h"
 #include "loader.h"
 
+typedef std::function<std::function<float3(const float3&)>(const float3&)> tanget_space;
+
+struct glass_peice
+{
+    obj_mesh peice;
+    float dist;
+    float3 rotation;
+    float3 pos;
+};
+
+void generate_broken_glass(
+    std::vector<glass_peice>& peices);
+
 obj_mesh apply(const obj_mesh& input, const float3x3& trans, const float3& t = { 0.f, 0.f, 0.f }, bool flip_normals = false);
 obj_mesh fuse(const obj_mesh& a, const obj_mesh& b);
 obj_mesh filter(const obj_mesh& a, std::function<bool(const float3&)> pred, std::vector<int>& edge);

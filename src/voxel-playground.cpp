@@ -77,7 +77,11 @@ struct graphic_objects
     std::map<std::string, std::shared_ptr<vao>> tubes;
 
     texture mish, normals, world, cat_tex, white;
-    std::shared_ptr<vao> earth, tube, bent_tube, rotated_tube, cat, grid, cap;
+    std::shared_ptr<vao> earth, tube, bent_tube, 
+        rotated_tube, cat, grid, cap;
+
+    std::vector<std::pair<std::shared_ptr<vao>, glass_peice>> glass;
+
     simple_shader shader;
     tube_shader tb_shader;
     texture_2d_shader tex_2d_shader;
@@ -312,6 +316,17 @@ int main(int argc, char* argv[])
         auto bent_cylinder = generate_tube4(length, radius, -1.f, a, b);
         auto cap = generate_cap(1.f, radius, 0.5f);
 
+        go->glass.clear();
+        std::vector<glass_peice> glass_models;
+        generate_broken_glass(glass_models);
+        for (auto& p : glass_models)
+        {
+            go->glass.emplace_back(
+                vao::create(p.peice),
+                p
+            );
+        }
+
         go->rotated_tube = vao::create(apply(cylinder, r, { 0.f, 0.f, 0.f }, true));
         go->tube = vao::create(cylinder);
         go->cap = vao::create(cap);
@@ -377,6 +392,40 @@ int main(int argc, char* argv[])
         go->grid->draw();
         go->white.unbind();
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+
+        go->mish.bind(0);
+
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        for (auto& g : go->glass)
+        {
+            auto st = t * 2.f;
+            auto base = floor(st / 4.f) * 4.f;
+
+            auto t0 = st - base;
+            t0 = t0 * (t0 - 0.3f);
+
+            auto local_t = t0 * g.second.dist;
+            double w = cos(local_t * 7.0);
+            float4 q(sinf(local_t * 7.0) * g.second.rotation, w);
+            q = normalize(q);
+
+            auto out_vec = 10.f * (g.second.pos - float3{ 0.5f, -0.5f, 0.f });
+
+            go->shader.set_model(mul(
+                scaling_matrix(float3{ 2.f, 2.f, 2.f }),
+                translation_matrix(float3{ 
+                    g.second.pos.x + out_vec.x * local_t,
+                    2.f + g.second.pos.y + out_vec.y * local_t,
+                    10.f * local_t }),
+                rotation_matrix(q)
+            ));
+
+            g.first->draw();
+        }
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        go->mish.unbind();
     };
 
     auto draw_tubes = [&](texture& color) {
