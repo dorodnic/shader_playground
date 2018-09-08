@@ -19,6 +19,8 @@ uniform mat4 cameraMatrix;
 
 uniform vec3 lightPosition;
 
+uniform float do_normal_mapping;
+
 void main(void){
 	vec4 worldPosition = transformationMatrix * vec4(position.xyz, 1.0);
 
@@ -39,10 +41,20 @@ void main(void){
 	clipSpace = projectionMatrix * cameraMatrix * worldPosition;
 	gl_Position = clipSpace;
 
-	surfaceNormal = toTangentSpace * surfaceNormal;
-	toLightVector = toTangentSpace * (lightPosition - worldPosition.xyz);
 	vec3 cameraPos = (inverse(cameraMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-	toCameraVector = toTangentSpace * (cameraPos - worldPosition.xyz);
+
+	if (do_normal_mapping > 0.0)
+	{
+		surfaceNormal = toTangentSpace * surfaceNormal;
+		toLightVector = toTangentSpace * (lightPosition - worldPosition.xyz);
+		toCameraVector = toTangentSpace * (cameraPos - worldPosition.xyz);
+	}
+	else
+	{
+		surfaceNormal = surfaceNormal;
+		toLightVector = (lightPosition - worldPosition.xyz);
+		toCameraVector = (cameraPos - worldPosition.xyz);
+	}
 
 	refractedVector = refract(normalize(worldPosition.xyz - cameraPos), surfaceNormal, 1.0 / 1.33);
 }

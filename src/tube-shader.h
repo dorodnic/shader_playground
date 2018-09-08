@@ -8,6 +8,8 @@ class tube_shader : public simple_shader
 public:
     tube_shader();
 
+    void enable_normal_mapping(bool enabled);
+
     void set_distortion(float d);
 
     void set_material_properties(float ambient,
@@ -17,4 +19,5 @@ private:
     uint32_t _shine2_location;
     uint32_t _reflectivity2_location;
     uint32_t _distortion_location;
+    uint32_t _do_normal_mapping_location;
 };

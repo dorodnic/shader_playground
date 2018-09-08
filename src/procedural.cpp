@@ -30,6 +30,7 @@ float dist(const Point2& p)
     return std::min(dist(p[0]), dist(p[1]));
 }
 
+std::default_random_engine generator;
 
 void generate_broken_glass(
     std::vector<glass_peice>& peices)
@@ -37,7 +38,7 @@ void generate_broken_glass(
     obj_mesh res;
 
     //unsigned int dimension = 1000000;
-    int numSites = 100;
+    int numSites = rand() % 50 + 20;
 
     BoundingBox bbox(0, 1, 1, 0);
 
@@ -48,7 +49,6 @@ void generate_broken_glass(
 
     Point2 s;
 
-    std::default_random_engine generator;
     std::normal_distribution<float> distribution(0.5f, 0.15f);
     std::uniform_real_distribution<float> uniform(0.0f, 1.0f);
 
@@ -72,6 +72,7 @@ void generate_broken_glass(
     {
         Point2* first = nullptr;
         float3 pos;
+        int k = 0;
 
         float min_dist = 1.f;
 
@@ -81,8 +82,6 @@ void generate_broken_glass(
                 if (first == nullptr)
                 {
                     first = e->startPoint();
-                    Point2& p3 = *first;
-                    pos = { (float)p3[0], (float)-p3[1], 0.f };
                 }
                 else
                 {
@@ -93,8 +92,14 @@ void generate_broken_glass(
                     if (dist_from_edge < min_dist)
                         min_dist = dist_from_edge;
                 }
+
+                Point2& p3 = *e->startPoint();
+                pos += float3{ (float)p3[0], (float)-p3[1], 0.f };
+                k++;
             }
         }
+
+        pos = pos * (1.f / k);
 
         for (HalfEdge* e : c->halfEdges)
         {
@@ -137,17 +142,17 @@ void generate_broken_glass(
                     res.normals.push_back({ 0.f, 0.f, -1.f });
                     res.normals.push_back({ 0.f, 0.f, -1.f });
 
-                    res.uvs.push_back({ a.x, a.y });
-                    res.uvs.push_back({ b.x, b.y });
-                    res.uvs.push_back({ c.x, c.y });
+                    res.uvs.push_back({ a.x / 2 + 0.2f, a.y / 2 });
+                    res.uvs.push_back({ b.x / 2 + 0.2f, b.y / 2 });
+                    res.uvs.push_back({ c.x / 2 + 0.2f, c.y / 2 });
 
-                    res.uvs.push_back({ a.x, a.y });
-                    res.uvs.push_back({ b.x, b.y });
-                    res.uvs.push_back({ c.x, c.y });
+                    res.uvs.push_back({ a.x / 2 + 0.2f, a.y / 2 });
+                    res.uvs.push_back({ b.x / 2 + 0.2f, b.y / 2 });
+                    res.uvs.push_back({ c.x / 2 + 0.2f, c.y / 2 });
                 }
                 else
                 {
-                    res.positions.push_back(a - pos);
+                    /*res.positions.push_back(a - pos);
                     res.positions.push_back(b - pos);
                     res.positions.push_back(c - pos);
 
@@ -168,16 +173,18 @@ void generate_broken_glass(
                     res.normals.push_back({ 0.f, 0.f, 1.f });
                     res.normals.push_back({ 0.f, 0.f, 1.f });
 
-                    res.uvs.push_back({ a.x, a.y });
-                    res.uvs.push_back({ b.x, b.y });
-                    res.uvs.push_back({ c.x, c.y });
+                    res.uvs.push_back({ a.x, a.y / 2 });
+                    res.uvs.push_back({ b.x, b.y / 2 });
+                    res.uvs.push_back({ c.x, c.y / 2 });
 
-                    res.uvs.push_back({ (a.x + b.x) / 2, (a.y + b.y) / 2 });
-                    res.uvs.push_back({ (a.x + c.x) / 2, (a.y + c.y) / 2 });
-                    res.uvs.push_back({ (b.x + c.x) / 2, (b.y + c.y) / 2 });
+                    res.uvs.push_back({ (a.x + b.x) / 2, (a.y + b.y) / 4 });
+                    res.uvs.push_back({ (a.x + c.x) / 2, (a.y + c.y) / 4 });
+                    res.uvs.push_back({ (b.x + c.x) / 2, (b.y + c.y) / 4 });*/
                 }
             }
         }
+
+        if (res.positions.size() == 0) continue;
 
         res.calculate_tangents();
 

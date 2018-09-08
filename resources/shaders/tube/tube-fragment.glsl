@@ -12,6 +12,7 @@ out vec4 out_color;
 uniform sampler2D textureSampler;
 uniform sampler2D refractionSampler;
 uniform sampler2D textureNormalSampler;
+uniform sampler2D destructionSampler;
 
 uniform float shineDamper;
 uniform float reflectivity;
@@ -19,6 +20,8 @@ uniform float shineDamper2;
 uniform float reflectivity2;
 uniform float ambient;
 uniform float distortion;
+
+uniform float do_normal_mapping;
 
 void main(void){
 	vec2 tex = vec2(textCoords.x, 1 - textCoords.y);
@@ -31,7 +34,7 @@ void main(void){
 	vec3 unitCamera = normalize(toCameraVector);
 
 	float nDotc0 = dot(unitNormal, unitCamera);
-	if (nDotc0 > 0) {
+	if (nDotc0 * do_normal_mapping > 0) {
 		unitNormal = normalize(normalMapValue.xyz);
 	}
 
@@ -57,24 +60,35 @@ void main(void){
 
 	vec2 clip_xy = clipSpace.xy;
 
-	nDotc0 = max(min(abs(nDotc0), 1), 0);
-	nDotc0 = pow(nDotc0, 5);
-	clip_xy = mix(1 - distortion, 1 + distortion, nDotc0) * clip_xy;
+	vec2 clip_xyn = ((clip_xy / clipSpace.w) / 2.0 + 0.5);
 
-	vec2 ndc = ((clip_xy / clipSpace.w) / 2.0 + 0.5);
+	vec4 dest_space = texture(destructionSampler, clip_xyn);
 
-	vec4 color2 = texture(refractionSampler, ndc);
+	if (dest_space.x * do_normal_mapping * mask_val * nDotc0 > 0)
+	{
+		out_color = texture(refractionSampler, clip_xyn) * 0.6;
+	}
+	else
+	{
+		nDotc0 = max(min(abs(nDotc0), 1), 0);
+		nDotc0 = pow(nDotc0, 5);
+		clip_xy = mix(1 - distortion, 1 + distortion, nDotc0) * clip_xy;
 
-	float s = smoothstep(-0.05, 0.05, nDotl);
+		vec2 ndc = ((clip_xy / clipSpace.w) / 2.0 + 0.5);
 
-	float refract_factor = pow(nDotc, 2);
+		vec4 color2 = texture(refractionSampler, ndc);
 
-	vec4 lighting2 = lighting + finalSpec2;
-	vec4 lighting1 = lighting + finalSpec * (1 - refract_factor);
+		float s = smoothstep(-0.05, 0.05, nDotl);
+
+		float refract_factor = pow(nDotc, 2);
+
+		vec4 lighting2 = lighting + finalSpec2;
+		vec4 lighting1 = lighting + finalSpec * (1 - refract_factor);
 	
 
-	vec4 glassTotal = mix(color, color2, refract_factor);
-	out_color = mix(lighting2 *color, lighting1 * glassTotal, mask_val);
+		vec4 glassTotal = mix(color, color2, refract_factor);
+		out_color = mix(lighting2 *color, lighting1 * glassTotal, mask_val);
+	}
 
 	//out_color.x = tex.x;
 }
