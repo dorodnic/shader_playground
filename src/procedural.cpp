@@ -379,6 +379,85 @@ obj_mesh generate_tube2(float length,
     return res;
 }
 
+float filter(float t, float a)
+{
+    auto part = 0.2f;
+    if (t < part)
+    {
+        return t * a;
+    }
+    else if (t > 1 - part)
+    {
+        return t * a - a + 1.f;
+    }
+    else
+    {
+        auto y1 = part * a;
+        auto y2 = (1 - part) * a - a + 1.f;
+        auto t1 = (t - part) / (1.f - 2 * part);
+        return t1 * y2 + (1 - t1) * y1;
+    }
+}
+
+obj_mesh generate_tube_new(float length, float radius, float q)
+{
+    obj_mesh res;
+
+    auto c1 = std::make_shared<arc_curve>(float3{ 0.f, radius, 0.f },
+                                          float3{ radius, 0.f, 0.f },
+                                          float3{ 0.f, 0.f, 0.f }
+                                          );
+    auto c2 = std::make_shared<arc_curve>(float3{ radius, 0.f, 0.f },
+                                          float3{ 0.f, -radius, 0.f }, 
+                                          float3{ 0.f, 0.f, 0.f });
+    composite_curve c;
+    c.add_curve(c1);
+    c.add_curve(c2);
+    int a = c.get_k(q);
+
+    linear_curve l(float3{ 0.f, 0.f, -length / 2.f},
+                   float3{ 0.f, 0.f, length / 2.f});
+    int b = l.get_k(q);
+
+    auto toidx = [&](int i, int j) {
+        return j * (a + 1) + i;
+    };
+
+    for (int j = 0; j <= b; j++)
+    {
+        for (int i = 0; i <= a; i++)
+        {
+            auto tube_center = l.eval(j, q);
+            auto point = tube_center + c.eval(i, q);
+
+            res.positions.push_back(point);
+
+            float3 n = point - tube_center;
+
+            res.normals.push_back(normalize(n));
+
+            auto u = filter((float)j / b, length / (3 * radius));
+            auto v = 0.5f + (float)i / (a * 0.66f);
+
+            res.uvs.emplace_back(u, v);
+
+            if (i < a && j < b)
+            {
+                auto curr = toidx(i, j);
+                auto next_a = toidx(i + 1, j);
+                auto next_b = toidx(i, j + 1);
+                auto next_ab = toidx(i + 1, j + 1);
+                res.indexes.emplace_back(curr, next_b, next_a);
+                res.indexes.emplace_back(next_a, next_b, next_ab);
+            }
+        }
+    }
+
+    res.calculate_tangents();
+
+    return res;
+}
+
 obj_mesh generate_tube3(float length,
     float radius,
     int a, int b)
@@ -405,20 +484,17 @@ obj_mesh generate_tube3(float length,
 
     x = fuse(x, y);
 
-    auto z = generate_tube2(length * 4.f / 3.f, radius, 0.f, a / 4, b / 4);
+    auto z = generate_tube_new(length * 4.f / 3.f, radius, 1.f);
 
-    float3x3 flipX{
-        { -1.f, 0.f, 0.f },
+    float3x3 id{
+        { 1.f, 0.f, 0.f },
         { 0.f, 1.f, 0.f },
         { 0.f, 0.f, 1.f }
     };
 
-    z = apply(z, flipX, { 0.f, 0.f, -0.5f }, true);
-    y = apply(z, flipY, { 0.f, 0.f, 0.f }, true);
-    z = fuse(z, y);
-    x = fuse(x, z);
+    z = apply(z, id, { 0.f, 0.f, -0.5f }, false);
 
-    return x;
+    return fuse(x, z);
 }
 
 obj_mesh generate_tube4(float length,
@@ -459,4 +535,71 @@ obj_mesh generate_tube4(float length,
     x = fuse(x, y);
 
     return x;
+}
+
+obj_mesh generate_cap(float length, float radius, float q)
+{
+    obj_mesh res;
+
+    float pi = 2 * acos(-1);
+
+    auto c1 = std::make_shared<arc_curve>(float3{ 0.f, radius, 0.f },
+        float3{ radius, 0.f, 0.f },
+        float3{ 0.f, 0.f, 0.f });
+    auto c2 = std::make_shared<arc_curve>(float3{ radius, 0.f, 0.f },
+        float3{ 0.f, -radius, 0.f },
+        float3{ 0.f, 0.f, 0.f });
+    auto c3 = std::make_shared<arc_curve>(float3{ 0.f, -radius, 0.f },
+        float3{ -radius, 0.f, 0.f },
+        float3{ 0.f, 0.f, 0.f });
+    auto c4 = std::make_shared<arc_curve>(float3{ -radius, 0.f, 0.f },
+        float3{ 0.f, radius, 0.f },
+        float3{ 0.f, 0.f, 0.f });
+    composite_curve c;
+    c.add_curve(c1);
+    c.add_curve(c2);
+    c.add_curve(c3);
+    c.add_curve(c4);
+    int a = c.get_k(q);
+
+    linear_curve l(float3{ 0.f, 0.f, -length / 2.f },
+        float3{ 0.f, 0.f, length / 2.f });
+    int b = l.get_k(q);
+
+    auto toidx = [&](int i, int j) {
+        return j * (a + 1) + i;
+    };
+
+    for (int j = 0; j <= b; j++)
+    {
+        for (int i = 0; i <= a; i++)
+        {
+            auto t = (float)j / b;
+            auto tube_center = l.eval(j, q);
+            auto p = c.eval(i, q);
+            auto s = std::cosf(std::asinf(t));
+            auto point = tube_center + p * float3(s, s, 0.f);
+
+            res.positions.push_back(point);
+
+            res.normals.push_back(point);
+
+            res.uvs.emplace_back(t * 0.33f, 
+                                 0.5f + (float)i / a * 3);
+
+            if (i < a && j < b)
+            {
+                auto curr = toidx(i, j);
+                auto next_a = toidx(i + 1, j);
+                auto next_b = toidx(i, j + 1);
+                auto next_ab = toidx(i + 1, j + 1);
+                res.indexes.emplace_back(curr, next_b, next_a);
+                res.indexes.emplace_back(next_a, next_b, next_ab);
+            }
+        }
+    }
+
+    res.calculate_tangents();
+
+    return res;
 }

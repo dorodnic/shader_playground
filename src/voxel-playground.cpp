@@ -77,7 +77,7 @@ struct graphic_objects
     std::map<std::string, std::shared_ptr<vao>> tubes;
 
     texture mish, normals, world, cat_tex, white;
-    std::shared_ptr<vao> earth, tube, bent_tube, rotated_tube, cat, grid;
+    std::shared_ptr<vao> earth, tube, bent_tube, rotated_tube, cat, grid, cap;
     simple_shader shader;
     tube_shader tb_shader;
     texture_2d_shader tex_2d_shader;
@@ -308,11 +308,13 @@ int main(int argc, char* argv[])
         }
         tube_idx = tubes_names.size() - 1;
 
-        auto cylinder = generate_tube(length, radius, 0, a, b);
+        auto cylinder = generate_tube(length, radius, 0.f, a, b);
         auto bent_cylinder = generate_tube4(length, radius, -1.f, a, b);
+        auto cap = generate_cap(1.f, radius, 0.5f);
 
         go->rotated_tube = vao::create(apply(cylinder, r, { 0.f, 0.f, 0.f }, true));
         go->tube = vao::create(cylinder);
+        go->cap = vao::create(cap);
         go->bent_tube = vao::create(bent_cylinder);
         go->grid = vao::create(make_grid(10, 10, 1.f, 1.f));
         go->cat = vao::create(cat_ld.get().front());
@@ -381,11 +383,20 @@ int main(int argc, char* argv[])
         go->mish.bind(0);
         color.bind(2);
         go->normals.bind(1);
+
         go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 0.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
         go->tube->draw();
+
+        go->tb_shader.set_model(mul(
+            translation_matrix(float3{ 0.f, 0.f, 5.f }),
+            scaling_matrix(float3{ 1.f, 1.f, 1.f })
+        ));
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        go->cap->draw();
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 3.f }),
