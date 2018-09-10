@@ -9,6 +9,9 @@ tube_shader::tube_shader()
     _reflectivity2_location = _shader->get_uniform_location("reflectivity2");
     _distortion_location = _shader->get_uniform_location("distortion");
     _do_normal_mapping_location = _shader->get_uniform_location("do_normal_mapping");
+    _decal_uvs_location = _shader->get_uniform_location("decal_uvs");
+    _decal_id_location = _shader->get_uniform_location("decal_id");
+    _decal_variations_locations = _shader->get_uniform_location("decal_variations");
 
     auto refractionSampler_location = _shader->get_uniform_location("refractionSampler");
     auto destructionSample_location = _shader->get_uniform_location("destructionSampler");
@@ -35,4 +38,15 @@ void tube_shader::set_material_properties(
     simple_shader::set_material_properties(ambient, shine, reflectivity);
     _shader->load_uniform(_shine2_location, shine * 2);
     _shader->load_uniform(_reflectivity2_location, reflectivity * 2);
+}
+
+void tube_shader::set_decal_uvs(const float2 & uvs)
+{
+    _shader->load_uniform(_decal_uvs_location, uvs);
+}
+
+void tube_shader::set_decal_id(int decal, int variations)
+{
+    _shader->load_uniform(_decal_id_location, decal);
+    _shader->load_uniform(_decal_variations_locations, variations);
 }

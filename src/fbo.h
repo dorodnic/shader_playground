@@ -26,6 +26,9 @@ public:
     const texture& get_color_texture() const { return _color_tex; }
     const texture& get_depth_texture() const { return _depth_tex; }
 
+    int get_width() const { return _w; }
+    int get_height() const { return _h; }
+
 private:
     texture _color_tex;
     texture _depth_tex;

@@ -23,6 +23,10 @@ uniform float distortion;
 
 uniform float do_normal_mapping;
 
+uniform vec2 decal_uvs;
+uniform int decal_id;
+uniform int decal_variations;
+
 void main(void){
 	vec2 tex = vec2(textCoords.x, 1 - textCoords.y);
 
@@ -62,10 +66,28 @@ void main(void){
 
 	vec2 clip_xyn = ((clip_xy / clipSpace.w) / 2.0 + 0.5);
 
-	vec4 dest_space = texture(destructionSampler, clip_xyn);
+	vec2 decal_tex = vec2(
+		((decal_uvs.x - tex.x)* 3. + 0.5) , 
+		((1.0 - decal_uvs.y - tex.y)* 2. + 0.5)
+	);
+	decal_tex.x = max(0, min(1, decal_tex.x));
+	decal_tex.y = max(0, min(1, decal_tex.y));
+
+	int i = decal_id / decal_variations;
+	int j = decal_id % decal_variations;
+	decal_tex.x = decal_tex.x / decal_variations + float(i) / decal_variations;
+	decal_tex.y = decal_tex.y / decal_variations + float(j) / decal_variations;
+
+	decal_tex.x = max(0, min(1, decal_tex.x));
+	decal_tex.y = max(0, min(1, decal_tex.y));
+
+	vec4 dest_space = texture(destructionSampler, decal_tex);
+	//out_color = vec4(decal_tex, 1.0, 1.0);
 
 	if (dest_space.x * do_normal_mapping * mask_val * nDotc0 > 0)
 	{
+		//out_color = vec4(1.0, 1.0, 0.0, 1.0);
+		//discard;
 		out_color = texture(refractionSampler, clip_xyn) * 0.6;
 	}
 	else

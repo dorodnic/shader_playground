@@ -81,7 +81,7 @@ struct graphic_objects
         rotated_tube, cat, grid, cap;
 
     std::vector<std::vector<std::pair<std::shared_ptr<vao>, glass_peice>>> glasses;
-    int glass_id;
+    int glass_id = 0;
 
     simple_shader shader;
     tube_shader tb_shader;
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
 
         go->fbo1->get_color_texture().set_options(linear, mipmap);
         go->fbo2->get_color_texture().set_options(linear, mipmap);
-        go->glass_impact->get_color_texture().set_options(linear, mipmap);
+        go->glass_impact->get_color_texture().set_options(false, false);
     };
 
     /*auto t = 1.6f;
@@ -207,8 +207,9 @@ int main(int argc, char* argv[])
         go->fbo2->createDepthTextureAttachment();
 
         go->glass_impact = std::make_shared<fbo>(
-            fbo_resolutions[fbo_resolution].x,
-            fbo_resolutions[fbo_resolution].y);
+            1024,
+            1024);
+        go->glass_impact->get_color_texture().set_options(true, false);
         go->glass_impact->createTextureAttachment();
         go->glass_impact->createDepthTextureAttachment();
     };
@@ -221,8 +222,9 @@ int main(int argc, char* argv[])
     auto bent_cylinder = generate_tube4(length, radius, -1.f, a, b);
     auto cap = generate_cap(1.f, radius, 0.5f);
 
+    const int glass_variations = 4;
     std::vector<std::vector<glass_peice>> glass_models;
-    for (int i = 0; i < 15; i++)
+    for (int i = 0; i < glass_variations*glass_variations; i++)
     {
         std::vector<glass_peice> t;
         generate_broken_glass(t);
@@ -337,6 +339,25 @@ int main(int argc, char* argv[])
         tube_idx = tubes_names.size() - 1;
 
         go->glasses.clear();
+
+        go->shader.begin();
+        go->glass_impact->bind();
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        go->shader.set_light({ 0.f, 0.f, -1.f });
+        go->shader.set_material_properties(1.f, 1.f, 0.f);
+
+        auto projection = create_orthographic_projection_matrix(
+            go->glass_impact->get_width(),
+            go->glass_impact->get_height(), go->glass_impact->get_width(), 0.1f, 1000.f);
+        go->shader.set_mvp(identity_t{}, 
+            scaling_matrix(float3{ 2.f / glass_variations, 2.f / glass_variations, -0.5f }), 
+            projection);
+
+        go->white.bind(0);
+
+        int index = 0;
         for (auto& gm : glass_models)
         {
             std::vector<std::pair<std::shared_ptr<vao>, glass_peice>> glass;
@@ -347,8 +368,36 @@ int main(int argc, char* argv[])
                     p
                 );
             }
+
+            for (auto& g : glass)
+            {
+                auto view =
+                    translation_matrix(float3{
+                    g.second.pos.x,
+                    g.second.pos.y,
+                    0.f });
+
+                int i = index / glass_variations - glass_variations / 2;
+                int j = index % glass_variations - glass_variations / 2;
+
+                view = mul(
+                    translation_matrix(float3{ i - 0.f, j + 1.f, 1.f }), 
+                    scaling_matrix(float3{ 0.99f, 0.99f, 1.f }), // to prevent any pixels from sticking to the edge
+                    view);
+
+                go->shader.set_model(view);
+
+                g.first->draw();
+            }
+
             go->glasses.emplace_back(glass);
+
+            index++;
         }
+
+        go->white.unbind();
+        go->glass_impact->unbind();
+        go->shader.end();
 
         go->rotated_tube = vao::create(apply(cylinder, r, { 0.f, 0.f, 0.f }, true));
         go->tube = vao::create(cylinder);
@@ -362,14 +411,14 @@ int main(int argc, char* argv[])
     auto reload_graphics = [&]() {
         go = std::make_shared<graphic_objects>();
 
-        reload_models();
         reload_fbos();
         reload_textures();
+        reload_models();
 
         go->fdo_visualizer = std::make_shared<plane_2d>(
             float2{ 0.0f, 0.0f }, float2{ 1.f, 1.f });
         go->fdo2_visualizer = std::make_shared<plane_2d>(
-            float2{ 0.8f, 0.4f }, float2{ 0.2f, 0.2f });
+            float2{ 0.5f, 0.0f }, float2{ 0.3f, 0.5f });
     };
     reload_graphics();
 
@@ -432,11 +481,13 @@ int main(int argc, char* argv[])
 
         go->tb_shader.enable_normal_mapping(true);
 
+        go->glass_impact->get_color_texture().bind(3);
         go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 0.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
         go->tube->draw();
+        go->glass_impact->get_color_texture().unbind();
 
         go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 5.f }),
@@ -469,12 +520,12 @@ int main(int argc, char* argv[])
         tube_vaos[tube_idx * 2 + (fov <= 120 ? 1 : 0)]->draw();
 
         go->tb_shader.enable_normal_mapping(false);
-        go->tb_shader.set_material_properties(diffuse_level * 1.3f, shineDamper * 50.f, reflectivity * 50.f);
+        go->tb_shader.set_decal_id(go->glass_id, glass_variations);
 
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         for (auto& g : go->glasses[go->glass_id])
         {
-            auto st = t * 15.f;
+            auto st = t * 1.f;
             auto base = floor(st / 6.f) * 6.f;
 
             auto t0 = st - base;
@@ -504,25 +555,34 @@ int main(int argc, char* argv[])
                         { normal, 0.f },
                         { pos, 1.f }
                     };
+
+                    auto uvs = cylinder.uvs[k];
+
+                    go->tb_shader.set_decal_uvs(uvs);
+
                 } while (dot(to_camera, normal) < 0.f);
             }
             last_t = t0;
 
-            //t0 = t0 * (t0 - 0.1f);
+            t0 = t0 * (t0 - 0.2f);
 
-            auto local_t = t0 * g.second.dist;
+            auto local_t = t0 * g.second.dist * 1.f;
             double w = cos(local_t * 7.0);
             float4 q(sinf(local_t * 7.0) * g.second.rotation, w);
             q = normalize(q);
 
+            go->tb_shader.set_material_properties(diffuse_level * (1.f + local_t), 
+                shineDamper * (1.f + local_t * 50.f), 
+                reflectivity * (1.f + local_t * 50.f));
+
             auto out_vec = 10.f * (g.second.pos - float3{ 0.5f, -0.5f, 0.f });
 
             auto view = mul(
-                scaling_matrix(float3{ 1.5f, 1.5f, 1.5f }),
+                scaling_matrix(float3{ 1.f, 1.f, 1.f }),
                 translation_matrix(float3{
                 -0.5f + g.second.pos.x + out_vec.x * local_t,
                 0.5f + g.second.pos.y + out_vec.y * local_t,
-                5.f * local_t }),
+                5.f * local_t - 0.03f }),
                 rotation_matrix(q)
                 );
 
@@ -602,42 +662,6 @@ int main(int argc, char* argv[])
 
         go->shader.begin();
 
-        go->glass_impact->bind();
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        go->shader.set_material_properties(1.f, 1.f, 0.f);
-        {
-            go->white.bind(0);
-
-            for (auto& g : go->glasses[go->glass_id])
-            {
-                auto out_vec = 10.f * (g.second.pos - float3{ 0.5f, -0.5f, 0.f });
-
-                auto view = mul(
-                    scaling_matrix(float3{ 1.5f, 1.5f, 1.5f }),
-                    translation_matrix(float3{
-                    -0.5f + g.second.pos.x,
-                    0.5f + g.second.pos.y,
-                    0.f })
-                    );
-
-                view = mul(tsp, view);
-
-                go->shader.set_model(view);
-
-                g.first->draw();
-            }
-
-            go->white.unbind();
-        }
-
-        go->glass_impact->unbind();
-
-
-
-        go->shader.begin();
-
         go->shader.set_material_properties(diffuse_level, shineDamper, reflectivity);
         go->shader.set_light(l.position);
         go->shader.set_mvp(matrix, cam->view_matrix(), cam->projection_matrix());
@@ -691,9 +715,8 @@ int main(int argc, char* argv[])
         glCullFace(GL_BACK);
 
         go->tb_shader.set_distortion(0.1f);
-        go->glass_impact->get_color_texture().bind(3);
+        
         draw_tubes(go->fbo2->get_color_texture(), t);
-        go->glass_impact->get_color_texture().unbind();
 
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);

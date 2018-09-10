@@ -15,9 +15,15 @@ public:
     void set_material_properties(float ambient,
         float shine, float reflectivity) override;
 
+    void set_decal_uvs(const float2& uvs);
+    void set_decal_id(int decal, int variations);
+
 private:
     uint32_t _shine2_location;
     uint32_t _reflectivity2_location;
     uint32_t _distortion_location;
     uint32_t _do_normal_mapping_location;
+    uint32_t _decal_uvs_location;
+    uint32_t _decal_id_location;
+    uint32_t _decal_variations_locations;
 };

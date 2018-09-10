@@ -94,7 +94,7 @@ void generate_broken_glass(
                 }
 
                 Point2& p3 = *e->startPoint();
-                pos += float3{ (float)p3[0], (float)-p3[1], 0.f };
+                pos += float3{ (float)p3[0], (float)-p3[1], dist(p3[1]) * 0.3f };
                 k++;
             }
         }
@@ -108,13 +108,13 @@ void generate_broken_glass(
                 Point2& p2 = *e->endPoint();
                 Point2& p3 = *first;
 
-                float3 a{ (float)p1[0], (float)-p1[1], 0.03f };
-                float3 b{ (float)p2[0], (float)-p2[1], 0.03f };
-                float3 c{ (float)p3[0], (float)-p3[1], 0.03f };
+                float3 a{ (float)p1[0], (float)-p1[1], dist(p1[1]) * 0.3f + 0.03f };
+                float3 b{ (float)p2[0], (float)-p2[1], dist(p2[1]) * 0.3f + 0.03f };
+                float3 c{ (float)p3[0], (float)-p3[1], dist(p3[1]) * 0.3f + 0.03f };
 
-                float3 a0{ (float)p1[0], (float)-p1[1], 0.f };
-                float3 b0{ (float)p2[0], (float)-p2[1], 0.f };
-                float3 c0{ (float)p3[0], (float)-p3[1], 0.f };
+                float3 a0{ (float)p1[0], (float)-p1[1], dist(p1[1]) * 0.3f + 0.f };
+                float3 b0{ (float)p2[0], (float)-p2[1], dist(p2[1]) * 0.3f + 0.f };
+                float3 c0{ (float)p3[0], (float)-p3[1], dist(p3[1]) * 0.3f + 0.f };
 
                 int idx = res.positions.size();
 
@@ -134,13 +134,13 @@ void generate_broken_glass(
                     res.indexes.emplace_back(idx, idx + 3, idx + 1);
                     res.indexes.emplace_back(idx + 1, idx + 3, idx + 4);
 
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    res.normals.push_back(a - float3{ 0.f, 0.f, -3.f });
+                    res.normals.push_back(b - float3{ 0.f, 0.f, -3.f });
+                    res.normals.push_back(c - float3{ 0.f, 0.f, -3.f });
 
-                    res.normals.push_back({ 0.f, 0.f, -1.f });
-                    res.normals.push_back({ 0.f, 0.f, -1.f });
-                    res.normals.push_back({ 0.f, 0.f, -1.f });
+                    res.normals.push_back(float3{ 0.f, 0.f, -3.f } - a);
+                    res.normals.push_back(float3{ 0.f, 0.f, -3.f } - b);
+                    res.normals.push_back(float3{ 0.f, 0.f, -3.f } - c);
 
                     res.uvs.push_back({ a.x / 2 + 0.2f, a.y / 2 });
                     res.uvs.push_back({ b.x / 2 + 0.2f, b.y / 2 });

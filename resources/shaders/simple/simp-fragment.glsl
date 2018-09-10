@@ -37,4 +37,5 @@ void main(void){
 	lighting = lighting + finalSpec;
 
 	out_color = lighting * color;
+	//out_color = vec4(1.0, 1.0, 1.0, 1.0);
 }

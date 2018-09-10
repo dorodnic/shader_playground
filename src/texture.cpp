@@ -72,7 +72,6 @@ void texture::upload(int channels, int bits_per_channel, int width, int height, 
     }
     else throw std::runtime_error("Unsupported image format!");
 
-    glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     if (!_mipmap)
     {
@@ -80,6 +79,7 @@ void texture::upload(int channels, int bits_per_channel, int width, int height, 
     }
     else
     {
+        glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -1);
     }
