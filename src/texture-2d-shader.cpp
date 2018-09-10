@@ -40,3 +40,20 @@ void texture_2d_shader::init()
 
 void texture_2d_shader::begin() { _shader->begin(); }
 void texture_2d_shader::end() { _shader->end(); }
+
+gaussian_blur::gaussian_blur()
+    : texture_2d_shader(shader_program::load(
+        "resources/shaders/gaussian/blur-vertex.glsl",
+        "resources/shaders/gaussian/blur-fragment.glsl"))
+{
+    _width_location = _shader->get_uniform_location("imageWidth");
+    _height_location = _shader->get_uniform_location("imageHeight");
+    _horizontal_location = _shader->get_uniform_location("horizontal");
+}
+
+void gaussian_blur::set_width_height(bool horizontal, int w, int h)
+{
+    _shader->load_uniform(_width_location, w);
+    _shader->load_uniform(_height_location, h);
+    _shader->load_uniform(_horizontal_location, horizontal ? 1.0f : 0.0f);
+}

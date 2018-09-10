@@ -26,3 +26,13 @@ private:
     uint32_t _position_location;
     uint32_t _scale_location;
 };
+
+class gaussian_blur : public texture_2d_shader
+{
+public:
+    gaussian_blur();
+
+    void set_width_height(bool horizontal, int w, int h);
+private:
+    uint32_t _width_location, _height_location, _horizontal_location;
+};

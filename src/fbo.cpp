@@ -11,12 +11,14 @@ fbo::fbo(int w, int h) : _w(w), _h(h)
 
 void fbo::createTextureAttachment()
 {
-    _color_tex.upload(3, 8, _w, _h, nullptr);
+    _color_tex.set_options(false, false);
+    _color_tex.upload(4, 8, _w, _h, nullptr);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, _color_tex.get(), 0);
 }
 
 void fbo::createDepthTextureAttachment()
 {
+    _depth_tex.set_options(true, false);
     _depth_tex.upload(1, 32, _w, _h, nullptr);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, _depth_tex.get(), 0);
 }

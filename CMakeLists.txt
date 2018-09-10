@@ -21,6 +21,8 @@ set(SHADERS resources/shaders/advanced/adv-fragment.glsl
             resources/shaders/tube/tube-vertex.glsl
             resources/shaders/planar/plane-fragment.glsl
             resources/shaders/planar/plane-vertex.glsl
+            resources/shaders/gaussian/blur-fragment.glsl
+            resources/shaders/gaussian/blur-vertex.glsl
             )
 
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -32,6 +34,8 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/shaders/tube/tube-vertex.glsl
                   resources/shaders/planar/plane-fragment.glsl
                   resources/shaders/planar/plane-vertex.glsl
+                  resources/shaders/gaussian/blur-fragment.glsl
+                  resources/shaders/gaussian/blur-vertex.glsl
                   resources/mish.jpg
                   resources/mish_dark.jpg
                   resources/texture.png

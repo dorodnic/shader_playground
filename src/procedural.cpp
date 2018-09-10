@@ -38,7 +38,7 @@ void generate_broken_glass(
     obj_mesh res;
 
     //unsigned int dimension = 1000000;
-    int numSites = rand() % 50 + 20;
+    int numSites = rand() % 100 + 20;
 
     BoundingBox bbox(0, 1, 1, 0);
 
@@ -108,9 +108,9 @@ void generate_broken_glass(
                 Point2& p2 = *e->endPoint();
                 Point2& p3 = *first;
 
-                float3 a{ (float)p1[0], (float)-p1[1], dist(p1[1]) * 0.3f + 0.03f };
-                float3 b{ (float)p2[0], (float)-p2[1], dist(p2[1]) * 0.3f + 0.03f };
-                float3 c{ (float)p3[0], (float)-p3[1], dist(p3[1]) * 0.3f + 0.03f };
+                float3 a{ (float)p1[0], (float)-p1[1], dist(p1[1]) * 0.3f + 0.04f };
+                float3 b{ (float)p2[0], (float)-p2[1], dist(p2[1]) * 0.3f + 0.04f };
+                float3 c{ (float)p3[0], (float)-p3[1], dist(p3[1]) * 0.3f + 0.04f };
 
                 float3 a0{ (float)p1[0], (float)-p1[1], dist(p1[1]) * 0.3f + 0.f };
                 float3 b0{ (float)p2[0], (float)-p2[1], dist(p2[1]) * 0.3f + 0.f };
@@ -131,8 +131,16 @@ void generate_broken_glass(
                     res.positions.push_back(c0 - pos);
 
                     res.indexes.emplace_back(idx + 3, idx + 5, idx + 4);
-                    res.indexes.emplace_back(idx, idx + 3, idx + 1);
-                    res.indexes.emplace_back(idx + 1, idx + 3, idx + 4);
+
+                    res.positions.push_back(a - pos);
+                    res.positions.push_back(b - pos);
+                    res.positions.push_back(c - pos);
+                    res.positions.push_back(a0 - pos);
+                    res.positions.push_back(b0 - pos);
+                    res.positions.push_back(c0 - pos);
+
+                    res.indexes.emplace_back(idx + 6, idx + 6 + 3, idx + 6 + 1);
+                    res.indexes.emplace_back(idx + 6 + 1, idx + 6 + 3, idx + 6 + 4);
 
                     res.normals.push_back(a - float3{ 0.f, 0.f, -3.f });
                     res.normals.push_back(b - float3{ 0.f, 0.f, -3.f });
@@ -142,13 +150,23 @@ void generate_broken_glass(
                     res.normals.push_back(float3{ 0.f, 0.f, -3.f } - b);
                     res.normals.push_back(float3{ 0.f, 0.f, -3.f } - c);
 
-                    res.uvs.push_back({ a.x / 2 + 0.2f, a.y / 2 });
-                    res.uvs.push_back({ b.x / 2 + 0.2f, b.y / 2 });
-                    res.uvs.push_back({ c.x / 2 + 0.2f, c.y / 2 });
+                    auto norm = a - float3{ 0.f, 0.f, -3.f };
+                    auto edge = b - a;
+                    auto side_norm = cross(norm, edge);
 
-                    res.uvs.push_back({ a.x / 2 + 0.2f, a.y / 2 });
-                    res.uvs.push_back({ b.x / 2 + 0.2f, b.y / 2 });
-                    res.uvs.push_back({ c.x / 2 + 0.2f, c.y / 2 });
+                    res.normals.push_back(side_norm);
+                    res.normals.push_back(side_norm);
+                    res.normals.push_back(side_norm);
+                    res.normals.push_back(side_norm);
+                    res.normals.push_back(side_norm);
+                    res.normals.push_back(side_norm);
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        res.uvs.push_back({ a.x / 2 + 0.2f, a.y / 2 });
+                        res.uvs.push_back({ b.x / 2 + 0.2f, b.y / 2 });
+                        res.uvs.push_back({ c.x / 2 + 0.2f, c.y / 2 });
+                    }
                 }
                 else
                 {
