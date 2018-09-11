@@ -2,6 +2,8 @@
 
 #include "util.h"
 #include "shader.h"
+#include "vao.h"
+#include "texture.h"
 
 class texture_2d_shader
 {
@@ -27,12 +29,29 @@ private:
     uint32_t _scale_location;
 };
 
-class gaussian_blur : public texture_2d_shader
+class texture_visualizer
 {
 public:
-    gaussian_blur();
+    texture_visualizer(float2 pos, float2 scale)
+        : _position(std::move(pos)),
+          _scale(std::move(scale)),
+          _geometry(vao::create(create_mesh()))
+    {
 
-    void set_width_height(bool horizontal, int w, int h);
+    }
+
+    texture_visualizer()
+        : texture_visualizer({ 0.f, 0.f }, { 1.f, 1.f }) {}
+
+    void set_position(float2 pos) { _position = pos; }
+    void set_scale(float2 scale) { _scale = scale; }
+
+    void draw(texture_2d_shader& shader, texture& tex);
+
 private:
-    uint32_t _width_location, _height_location, _horizontal_location;
+    static obj_mesh create_mesh();
+
+    float2 _position;
+    float2 _scale;
+    std::shared_ptr<vao> _geometry;
 };

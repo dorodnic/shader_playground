@@ -92,10 +92,10 @@ void main(void){
 		float dx = (dest_space.x - 0.5) * 2;
 		float dy = (dest_space.y - 0.5) * 2;
 		//
-		if (((dx * p.x < 0) && (abs(dx) < 0.9) &&
+		if (((dx * p.x < 0) && (abs(dx) < 0.5) &&
 			(abs(dx) < abs(p.x)))
 			||
-			((dy * p.y < 0) && (abs(dy) < 0.9) &&
+			((dy * p.y < 0) && (abs(dy) < 0.5) &&
 			(abs(dy) < abs(p.y)))
 			)
 		{

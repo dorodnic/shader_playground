@@ -16,10 +16,17 @@ public:
 
     uint32_t get() const { return _texture; }
 
+    int get_width() const { return _width; }
+    int get_height() const { return _height; }
+    int get_bytes() const { return _width*_height*_bpp; }
+    float get_load_time() const { return _load_time; }
+
     void set_options(bool linear, bool mipmap);
 
 private:
     uint32_t _texture;
     bool _mipmap = true;
     bool _linear = true;
+    int _width = 0, _height = 0, _bpp = 0;
+    float _load_time = 0.;
 };

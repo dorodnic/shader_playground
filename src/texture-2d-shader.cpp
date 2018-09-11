@@ -41,19 +41,34 @@ void texture_2d_shader::init()
 void texture_2d_shader::begin() { _shader->begin(); }
 void texture_2d_shader::end() { _shader->end(); }
 
-gaussian_blur::gaussian_blur()
-    : texture_2d_shader(shader_program::load(
-        "resources/shaders/gaussian/blur-vertex.glsl",
-        "resources/shaders/gaussian/blur-fragment.glsl"))
+void texture_visualizer::draw(texture_2d_shader& shader, texture& tex)
 {
-    _width_location = _shader->get_uniform_location("imageWidth");
-    _height_location = _shader->get_uniform_location("imageHeight");
-    _horizontal_location = _shader->get_uniform_location("horizontal");
+    shader.begin();
+    shader.set_position_and_scale(_position, _scale);
+    tex.bind(0);
+    _geometry->draw();
+    tex.unbind();
+    shader.end();
 }
 
-void gaussian_blur::set_width_height(bool horizontal, int w, int h)
+obj_mesh texture_visualizer::create_mesh()
 {
-    _shader->load_uniform(_width_location, w);
-    _shader->load_uniform(_height_location, h);
-    _shader->load_uniform(_horizontal_location, horizontal ? 1.0f : 0.0f);
+    obj_mesh res;
+
+    res.positions.emplace_back(-1.f, -1.f, 0.f);
+    res.positions.emplace_back(1.f, -1.f, 0.f);
+    res.positions.emplace_back(1.f, 1.f, 0.f);
+    res.positions.emplace_back(-1.f, 1.f, 0.f);
+    res.normals.resize(4, { 0.f, 0.f, 0.f });
+    res.tangents.resize(4, { 0.f, 0.f, 0.f });
+
+    res.uvs.emplace_back(0.f, 0.f);
+    res.uvs.emplace_back(1.f, 0.f);
+    res.uvs.emplace_back(1.f, 1.f);
+    res.uvs.emplace_back(-0.f, 1.f);
+
+    res.indexes.emplace_back(0, 1, 2);
+    res.indexes.emplace_back(2, 3, 0);
+
+    return res;
 }

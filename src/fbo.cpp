@@ -9,18 +9,18 @@ fbo::fbo(int w, int h) : _w(w), _h(h)
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
 }
 
-void fbo::createTextureAttachment()
+void fbo::createTextureAttachment(texture& color_tex)
 {
-    _color_tex.set_options(false, false);
-    _color_tex.upload(4, 8, _w, _h, nullptr);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, _color_tex.get(), 0);
+    color_tex.set_options(false, false);
+    color_tex.upload(4, 8, _w, _h, nullptr);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_tex.get(), 0);
 }
 
-void fbo::createDepthTextureAttachment()
+void fbo::createDepthTextureAttachment(texture& depth_tex)
 {
-    _depth_tex.set_options(true, false);
-    _depth_tex.upload(1, 32, _w, _h, nullptr);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, _depth_tex.get(), 0);
+    depth_tex.set_options(true, false);
+    depth_tex.upload(1, 32, _w, _h, nullptr);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_tex.get(), 0);
 }
 
 void fbo::bind()
@@ -48,4 +48,22 @@ fbo::~fbo()
 {
     glDeleteRenderbuffers(1, &_db);
     glDeleteFramebuffers(1, &_id);
+}
+
+std::string fbo::get_status()
+{
+    std::string res = "UNKNOWN";
+
+    bind();
+    auto s = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+    if (s == GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT) res = "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
+    else if (s == 0x8CD9) res = "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS";
+    else if (s == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT) res = "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
+    else if (s == GL_FRAMEBUFFER_UNSUPPORTED) res = "GL_FRAMEBUFFER_UNSUPPORTED";
+    else if (s == GL_FRAMEBUFFER_COMPLETE) res = "GL_FRAMEBUFFER_COMPLETE";
+
+    unbind();
+
+    return res;
 }

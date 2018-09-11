@@ -51,8 +51,11 @@ bool window::is_alive()
 {
     if (!_first)
     {
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (_to_end_ui)
+        {
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        }
 
         glfwSwapBuffers(_window);
     }
@@ -76,7 +79,16 @@ bool window::is_alive()
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    _to_end_ui = true;
+
     return res;
+}
+
+void window::end_ui()
+{
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    _to_end_ui = false;
 }
 
 double window::get_time() const

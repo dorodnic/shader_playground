@@ -13,12 +13,14 @@ tube_shader::tube_shader()
     _decal_id_location = _shader->get_uniform_location("decal_id");
     _decal_variations_locations = _shader->get_uniform_location("decal_variations");
 
+    auto normalsSampler_location = _shader->get_uniform_location("textureNormalSampler");
     auto refractionSampler_location = _shader->get_uniform_location("refractionSampler");
     auto destructionSample_location = _shader->get_uniform_location("destructionSampler");
 
     _shader->begin();
-    _shader->load_uniform(refractionSampler_location, 2);
-    _shader->load_uniform(destructionSample_location, 3);
+    _shader->load_uniform(normalsSampler_location, normal_map_slot());
+    _shader->load_uniform(refractionSampler_location, refraction_slot());
+    _shader->load_uniform(destructionSample_location, decal_atlas_slot());
     _shader->end();
 }
 

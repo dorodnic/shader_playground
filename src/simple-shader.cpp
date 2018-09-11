@@ -35,7 +35,7 @@ void simple_shader::init()
     auto texture0_sampler_location = _shader->get_uniform_location("textureSampler");
 
     _shader->begin();
-    _shader->load_uniform(texture0_sampler_location, 0);
+    _shader->load_uniform(texture0_sampler_location, diffuse_slot());
     _shader->end();
 }
 

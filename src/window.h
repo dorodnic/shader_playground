@@ -19,6 +19,8 @@ public:
 
     bool is_alive();
 
+    void end_ui();
+
     int width() const { return _w; }
     int height() const { return _h; }
 
@@ -39,4 +41,5 @@ private:
     float _scale_factor = 1.f;
     const int _multisample = 4;
     const bool _fullscreen = false;
+    bool _to_end_ui = true;
 };

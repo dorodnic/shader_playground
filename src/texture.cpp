@@ -50,6 +50,10 @@ void texture::upload(int channels, int bits_per_channel, int width, int height, 
 {
     bind(0);
 
+    using namespace std::chrono;
+
+    auto start = high_resolution_clock::now();
+
     if (channels == 3 && bits_per_channel == 8)
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -85,4 +89,11 @@ void texture::upload(int channels, int bits_per_channel, int width, int height, 
     }
 
     unbind();
+
+    auto duration = (high_resolution_clock::now() - start);
+    
+    _width = width;
+    _height = height;
+    _bpp = channels * bits_per_channel / 8;
+    _load_time = duration_cast<microseconds>(duration).count() / 1000.f;
 }

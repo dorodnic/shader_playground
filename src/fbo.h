@@ -8,9 +8,9 @@ class fbo
 public:
     fbo(int w, int h);
 
-    void createTextureAttachment();
+    void createTextureAttachment(texture& color_tex);
 
-    void createDepthTextureAttachment();
+    void createDepthTextureAttachment(texture& depth_tex);
 
     void bind();
 
@@ -20,18 +20,12 @@ public:
 
     ~fbo();
 
-    texture& get_color_texture() { return _color_tex; }
-    texture& get_depth_texture() { return _depth_tex; }
-
-    const texture& get_color_texture() const { return _color_tex; }
-    const texture& get_depth_texture() const { return _depth_tex; }
+    std::string get_status();
 
     int get_width() const { return _w; }
     int get_height() const { return _h; }
 
 private:
-    texture _color_tex;
-    texture _depth_tex;
     uint32_t _id;
     uint32_t _db = 0;
     int _w, _h;

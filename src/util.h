@@ -31,6 +31,21 @@ struct str
     std::ostringstream _ss;
 };
 
+inline std::string bytes_to_string(long bytes)
+{
+    std::stringstream ss;
+    unsigned long base = 2;
+    if (bytes < (base << 10))
+        ss << bytes << " bytes";
+    else  if (bytes < (base << 20))
+        ss << (bytes >> 10) << " Kb";
+    else  if (bytes < (base << 30))
+        ss << (bytes >> 20) << " Mb";
+    else
+        ss << (bytes >> 30) << " Gb";
+    return ss.str();
+}
+
 float4x4 create_perspective_projection_matrix(float width, float height, float fov, float n, float f);
 float4x4 create_orthographic_projection_matrix(float width, float height, float fov, float n, float f);
 float4x4 identity_matrix();

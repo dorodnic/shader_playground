@@ -18,6 +18,10 @@ public:
     void set_decal_uvs(const float2& uvs);
     void set_decal_id(int decal, int variations);
 
+    int normal_map_slot() const { return 1; }
+    int refraction_slot() const { return 2; }
+    int decal_atlas_slot() const { return 3; }
+
 private:
     uint32_t _shine2_location;
     uint32_t _reflectivity2_location;

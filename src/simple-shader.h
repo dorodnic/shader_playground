@@ -22,6 +22,8 @@ public:
     virtual void set_material_properties(float ambient,
         float shine, float reflectivity);
 
+    int diffuse_slot() const { return 0; }
+
 protected:
     simple_shader(std::unique_ptr<shader_program> shader);
 

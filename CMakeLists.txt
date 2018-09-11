@@ -21,8 +21,8 @@ set(SHADERS resources/shaders/advanced/adv-fragment.glsl
             resources/shaders/tube/tube-vertex.glsl
             resources/shaders/planar/plane-fragment.glsl
             resources/shaders/planar/plane-vertex.glsl
-            resources/shaders/gaussian/blur-fragment.glsl
-            resources/shaders/gaussian/blur-vertex.glsl
+            resources/shaders/planar/decal-atlas-fragment.glsl
+            resources/shaders/planar/decal-atlas-vertex.glsl
             )
 
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -34,8 +34,8 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/shaders/tube/tube-vertex.glsl
                   resources/shaders/planar/plane-fragment.glsl
                   resources/shaders/planar/plane-vertex.glsl
-                  resources/shaders/gaussian/blur-fragment.glsl
-                  resources/shaders/gaussian/blur-vertex.glsl
+                  resources/shaders/planar/decal-atlas-fragment.glsl
+                  resources/shaders/planar/decal-atlas-vertex.glsl
                   resources/mish.jpg
                   resources/mish_dark.jpg
                   resources/texture.png
@@ -99,6 +99,7 @@ add_executable(voxel-playground
     src/tube-shader.cpp src/tube-shader.h
     src/window.cpp src/window.h 
     src/texture.cpp src/texture.h 
+    src/glass-decals.cpp src/glass-decals.h
     src/util.cpp src/util.h 
     src/vao.cpp src/vao.h 
     src/vbo.cpp src/vbo.h 
