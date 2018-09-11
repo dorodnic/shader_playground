@@ -61,6 +61,8 @@ public:
 
     const std::string& get_name() const { return _name; }
 
+    void release() { _tex.reset(); }
+
     void reload()
     {
         _tex = std::make_shared<texture>();
@@ -112,8 +114,8 @@ struct graphic_objects
     tube_shader tb_shader;
     texture_2d_shader tex_2d_shader;
     glass_decals_shader blur_shader;
-    std::shared_ptr<fbo> fbo1, fbo2;
 
+    std::shared_ptr<fbo> fbo1, fbo2;
     std::shared_ptr<fbo> glass_impact, glass_impact2;
 };
 
@@ -231,12 +233,6 @@ int main(int argc, char* argv[])
 
         go->glass_impact2 = std::make_shared<fbo>(1024, 1024);
         go->glass_impact2->createTextureAttachment(textures[temp_glass_atlas].get());
-
-
-        LOG(INFO) << "First Pass: " << go->fbo1->get_status();
-        LOG(INFO) << "Second Pass: " << go->fbo2->get_status();
-        LOG(INFO) << "Atlas 1: " << go->glass_impact->get_status();
-        LOG(INFO) << "Atlas 2: " << go->glass_impact2->get_status();
     };
 
     std::vector<const char*> tubes_names;
@@ -951,13 +947,16 @@ int main(int argc, char* argv[])
             static int selected_texture = 0;
             std::vector<const char*> texture_names;
             long total_bytes = 0;
+            float load_time = 0.f;
             for (auto& to : textures)
             {
                 total_bytes += to.get().get_bytes();
+                load_time += to.get().get_load_time();
                 texture_names.push_back(to.get_name().c_str());
             }
             auto bytes_str = bytes_to_string(total_bytes);
             ImGui::Text("Total Texture Memory: %s", bytes_str.c_str());
+            ImGui::Text("Load Time: %f ms", load_time);
 
             auto& to = textures[selected_texture];
             {
@@ -1048,6 +1047,7 @@ int main(int argc, char* argv[])
         {
             LOG(INFO) << "Releasing all OpenGL objects and Window";
             go.reset();
+            for (auto& to : textures) to.release();
             app.reset();
 
             LOG(INFO) << "Recreating the Window";

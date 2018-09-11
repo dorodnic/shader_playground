@@ -37,6 +37,10 @@ texture::~texture()
 
 void texture::upload(const std::string& filename)
 {
+    using namespace std::chrono;
+
+    auto start = high_resolution_clock::now();
+
     if (!file_exists(filename))
         throw std::runtime_error("Texture file not found!");
 
@@ -44,6 +48,9 @@ void texture::upload(const std::string& filename)
     auto r = stbi_load(filename.c_str(), &x, &y, &comp, false);
     upload(comp, 8, x, y, r);
     stbi_image_free(r);
+
+    auto duration = (high_resolution_clock::now() - start);
+    _load_time = duration_cast<microseconds>(duration).count() / 1000.f;
 }
 
 void texture::upload(int channels, int bits_per_channel, int width, int height, uint8_t* data)
