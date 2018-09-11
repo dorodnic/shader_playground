@@ -16,11 +16,13 @@ tube_shader::tube_shader()
     auto normalsSampler_location = _shader->get_uniform_location("textureNormalSampler");
     auto refractionSampler_location = _shader->get_uniform_location("refractionSampler");
     auto destructionSample_location = _shader->get_uniform_location("destructionSampler");
+    auto glassSampler_location = _shader->get_uniform_location("glassSampler");
 
     _shader->begin();
     _shader->load_uniform(normalsSampler_location, normal_map_slot());
     _shader->load_uniform(refractionSampler_location, refraction_slot());
     _shader->load_uniform(destructionSample_location, decal_atlas_slot());
+    _shader->load_uniform(glassSampler_location, glass_atlas_slot());
     _shader->end();
 }
 

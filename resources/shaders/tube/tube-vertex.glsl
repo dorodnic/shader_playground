@@ -5,6 +5,7 @@ in vec2 textureCoords;
 in vec3 normal;
 in vec3 tangent;
 
+out vec3 surfaceTangent;
 out vec3 surfaceNormal;
 out vec3 toLightVector;
 out vec3 toCameraVector;
@@ -29,7 +30,8 @@ void main(void){
 	surfaceNormal = (transformationMatrix * vec4(normal, 0.0)).xyz;
 
 	vec3 norm = normalize(surfaceNormal);
-	vec3 tang = normalize((transformationMatrix * vec4(tangent, 0.0)).xyz);
+	surfaceTangent = (transformationMatrix * vec4(tangent, 0.0)).xyz;
+	vec3 tang = normalize(surfaceTangent);
 	vec3 bitang = normalize(cross(norm, tang));
 
 	mat3 toTangentSpace = mat3(

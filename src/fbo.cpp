@@ -9,9 +9,9 @@ fbo::fbo(int w, int h) : _w(w), _h(h)
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
 }
 
-void fbo::createTextureAttachment(texture& color_tex)
+void fbo::createTextureAttachment(texture& color_tex, bool nearest)
 {
-    color_tex.set_options(false, false);
+    color_tex.set_options(!nearest, false);
     color_tex.upload(4, 8, _w, _h, nullptr);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_tex.get(), 0);
 }

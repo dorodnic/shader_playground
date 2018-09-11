@@ -6,6 +6,7 @@ in vec3 toLightVector;
 in vec3 toCameraVector;
 in vec4 clipSpace;
 in vec3 refractedVector;
+in vec3 surfaceTangent;
 
 out vec4 out_color;
 
@@ -13,6 +14,7 @@ uniform sampler2D textureSampler;
 uniform sampler2D refractionSampler;
 uniform sampler2D textureNormalSampler;
 uniform sampler2D destructionSampler;
+uniform sampler2D glassSampler;
 
 uniform float shineDamper;
 uniform float reflectivity;
@@ -37,6 +39,26 @@ float gold_noise(in vec2 coordinate, in float seed){
     return fract(tan(distance(coordinate*(seed+PHI), vec2(PHI, PI)))*SQ2);
 }
 
+vec2 calc_decal_tex(vec2 scale, vec2 tex)
+{
+	vec2 decal_tex = vec2(
+		((decal_uvs.x - tex.x)* 2.0 * scale.x * 0.4f + 0.5) , 
+		((1.0 - decal_uvs.y - tex.y)* 1.2 * scale.y + 0.5)
+	);
+	decal_tex.x = max(0, min(1, decal_tex.x));
+	decal_tex.y = max(0, min(1, decal_tex.y));
+
+	int i = decal_id / decal_variations;
+	int j = decal_id % decal_variations;
+	decal_tex.x = decal_tex.x / decal_variations + float(i) / decal_variations;
+	decal_tex.y = decal_tex.y / decal_variations + float(j) / decal_variations;
+
+	decal_tex.x = max(0, min(1, decal_tex.x));
+	decal_tex.y = max(0, min(1, decal_tex.y));
+
+	return decal_tex;
+}
+
 void main(void){
 	float reflectivity_copy = reflectivity;
 	float ambient_copy = ambient;
@@ -59,6 +81,8 @@ void main(void){
 
 	vec4 color = texture(textureSampler, tex);
 
+	//color.x = ;
+
 	float mask_val = 1 - color.w;
 	color.w = 1.0;
 
@@ -66,65 +90,62 @@ void main(void){
 
 	vec2 clip_xyn = ((clip_xy / clipSpace.w) / 2.0 + 0.5);
 
-	vec2 decal_tex = vec2(
-		((decal_uvs.x - tex.x)* 2.0 + 0.5) , 
-		((1.0 - decal_uvs.y - tex.y)* 1.2 + 0.5)
-	);
-	decal_tex.x = max(0, min(1, decal_tex.x));
-	decal_tex.y = max(0, min(1, decal_tex.y));
-
-	int i = decal_id / decal_variations;
-	int j = decal_id % decal_variations;
-	decal_tex.x = decal_tex.x / decal_variations + float(i) / decal_variations;
-	decal_tex.y = decal_tex.y / decal_variations + float(j) / decal_variations;
-
-	decal_tex.x = max(0, min(1, decal_tex.x));
-	decal_tex.y = max(0, min(1, decal_tex.y));
+	vec2 decal_tex = calc_decal_tex(vec2(length(surfaceTangent), 1.f), tex);
+	vec2 glass_tex = calc_decal_tex(vec2(length(surfaceTangent) * 0.5f, 0.5f), tex);
 
 	vec4 dest_space = texture(destructionSampler, decal_tex);
-	//out_color = vec4(decal_tex, 1.0, 1.0);
+	vec4 glass_diffuse = texture(glassSampler, glass_tex);
 
 	float near_decal = (1 - dest_space.w);
 
-	if ((dest_space.z == 1) && do_normal_mapping > 0 && mask_val > 0 && nDotc0 > 0)
+	if (do_normal_mapping > 0 && mask_val > 0 && nDotc0 > 0)
 	{
-		vec2 p = unitCamera.xy / unitCamera.z;
-		float dx = (dest_space.x - 0.5) * 2;
-		float dy = (dest_space.y - 0.5) * 2;
-		//
-		if (((dx * p.x < 0) && (abs(dx) < 0.5) &&
-			(abs(dx) < abs(p.x)))
-			||
-			((dy * p.y < 0) && (abs(dy) < 0.5) &&
-			(abs(dy) < abs(p.y)))
-			)
+		color.xyz *= (vec3(glass_diffuse.z) * 1.5 + 1.0);
+		color.xyz += (vec3(glass_diffuse.z) * gold_noise(glass_tex, 2.0) * 0.5);
+		reflectivity_copy *= (1.0 - glass_diffuse.z);
+
+		unitNormal += vec3(glass_diffuse.xy, 0.0) * 10.0;
+
+		if (dest_space.z == 1) 
 		{
-			float nx = gold_noise(p, 5.0);
-			float ny = gold_noise(p, 7.0);
+			vec2 p = unitCamera.xy / unitCamera.z;
+			float dx = (dest_space.x - 0.5) * 2;
+			float dy = (dest_space.y - 0.5) * 2;
+			//
+			if (((dx * p.x < 0) && (abs(dx) < 0.5) &&
+				(abs(dx) < abs(p.x)))
+				||
+				((dy * p.y < 0) && (abs(dy) < 0.5) &&
+				(abs(dy) < abs(p.y)))
+				)
+			{
+				float nx = gold_noise(p, 5.0);
+				float ny = gold_noise(p, 7.0);
 
-			unitNormal = unitCamera * vec3(
-				dx * 0.2 + 0.9, 
-				dy * 0.2 + 0.9, 0.0);
+				unitNormal = unitCamera * vec3(
+					dx * 0.2 + 0.9, 
+					dy * 0.2 + 0.9, 0.0);
 
-			unitNormal = 0.5 * unitNormal + vec3(-dx,-dy,0.0) * 0.5;
+				unitNormal = 0.5 * unitNormal + vec3(-dx,-dy,0.0) * 0.5;
 
-			float factor = (nx * 0.2) + 0.8;
-			color.x *= factor;
-			color.y *= factor;
-			color.z *= factor;
+				float factor = (nx * 0.2) + 0.8;
+				color.x *= factor;
+				color.y *= factor;
+				color.z *= factor;
 
-			unitNormal = normalize(unitNormal);
-			distortion_copy = 0.0;
-			reflectivity_copy = reflectivity_copy * 0.5;
-			ambient_copy = ambient_copy * 0.5;
-			nDotc0 = dot(unitNormal, unitCamera);
-			refraction_killer = 1.0;
-			near_decal = 0.0;
-		}
-		else
-		{
-			out_color = texture(refractionSampler, clip_xyn) * 0.5;
-			return;
+				unitNormal = normalize(unitNormal);
+				distortion_copy = 0.0;
+				reflectivity_copy = reflectivity_copy * 0.5;
+				ambient_copy = ambient_copy * 0.5;
+				nDotc0 = dot(unitNormal, unitCamera);
+				refraction_killer = 1.0;
+				near_decal = 0.0;
+			}
+			else
+			{
+				out_color = texture(refractionSampler, clip_xyn) * 0.5;
+				return;
+			}
 		}
 	}
 

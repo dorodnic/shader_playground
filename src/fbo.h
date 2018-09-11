@@ -8,7 +8,7 @@ class fbo
 public:
     fbo(int w, int h);
 
-    void createTextureAttachment(texture& color_tex);
+    void createTextureAttachment(texture& color_tex, bool nearest = true);
 
     void createDepthTextureAttachment(texture& depth_tex);
 

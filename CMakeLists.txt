@@ -23,6 +23,8 @@ set(SHADERS resources/shaders/advanced/adv-fragment.glsl
             resources/shaders/planar/plane-vertex.glsl
             resources/shaders/planar/decal-atlas-fragment.glsl
             resources/shaders/planar/decal-atlas-vertex.glsl
+            resources/shaders/planar/radial-fragment.glsl
+            resources/shaders/simple/normal-mapper.glsl
             )
 
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -36,6 +38,8 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/shaders/planar/plane-vertex.glsl
                   resources/shaders/planar/decal-atlas-fragment.glsl
                   resources/shaders/planar/decal-atlas-vertex.glsl
+                  resources/shaders/planar/radial-fragment.glsl
+                  resources/shaders/simple/normal-mapper.glsl
                   resources/mish.jpg
                   resources/mish_dark.jpg
                   resources/texture.png

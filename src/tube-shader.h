@@ -21,6 +21,7 @@ public:
     int normal_map_slot() const { return 1; }
     int refraction_slot() const { return 2; }
     int decal_atlas_slot() const { return 3; }
+    int glass_atlas_slot() const { return 4; }
 
 private:
     uint32_t _shine2_location;

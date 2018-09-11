@@ -21,6 +21,8 @@ bool sitesOrdered(const Point2& s1, const Point2& s2) {
 
 float dist(float x)
 {
+    x = std::max(0.f, std::min(x, 1.f));
+
     if (x < 0.5f) return fabsf(x);
     else return fabsf(1.f - x);
 }
@@ -38,9 +40,9 @@ void generate_broken_glass(
     obj_mesh res;
 
     //unsigned int dimension = 1000000;
-    int numSites = rand() % 100 + 20;
+    int numSites = rand() % 30 + 20;
 
-    BoundingBox bbox(0, 1, 1, 0);
+    BoundingBox bbox(-1, 2, 2, -1);
 
     std::vector<Point2> tmpSites, sites;
 
@@ -49,8 +51,20 @@ void generate_broken_glass(
 
     Point2 s;
 
-    std::normal_distribution<float> distribution(0.5f, 0.15f);
+    std::normal_distribution<float> distribution(0.5f, 0.2f);
     std::uniform_real_distribution<float> uniform(0.0f, 1.0f);
+
+    for (unsigned int i = 0; i < 4 * numSites; ++i) {
+        s.x = uniform(generator) * 3.f - 1.f;
+        s.y = uniform(generator) * 3.f - 1.f;
+        tmpSites.push_back(s);
+    }
+
+    for (unsigned int i = 0; i < numSites; ++i) {
+        s.x = distribution(generator) * 3.f - 1.f;
+        s.y = distribution(generator) * 3.f - 1.f;
+        tmpSites.push_back(s);
+    }
 
     for (unsigned int i = 0; i < numSites; ++i) {
         s.x = distribution(generator);
@@ -94,7 +108,7 @@ void generate_broken_glass(
                 }
 
                 Point2& p3 = *e->startPoint();
-                pos += float3{ (float)p3[0], (float)-p3[1], dist(p3[1]) * 0.3f };
+                pos += float3{ (float)p3[0], (float)-p3[1], (dist(p3[0]) + dist(p3[1])) * 0.3f };
                 k++;
             }
         }
@@ -108,13 +122,13 @@ void generate_broken_glass(
                 Point2& p2 = *e->endPoint();
                 Point2& p3 = *first;
 
-                float3 a{ (float)p1[0], (float)-p1[1], dist(p1[1]) * 0.3f + 0.04f };
-                float3 b{ (float)p2[0], (float)-p2[1], dist(p2[1]) * 0.3f + 0.04f };
-                float3 c{ (float)p3[0], (float)-p3[1], dist(p3[1]) * 0.3f + 0.04f };
+                float3 a{ (float)p1[0], (float)-p1[1], (dist(p1[0]) + dist(p1[1])) * 0.3f + 0.04f };
+                float3 b{ (float)p2[0], (float)-p2[1], (dist(p2[0]) + dist(p2[1])) * 0.3f + 0.04f };
+                float3 c{ (float)p3[0], (float)-p3[1], (dist(p3[0]) + dist(p3[1])) * 0.3f + 0.04f };
 
-                float3 a0{ (float)p1[0], (float)-p1[1], dist(p1[1]) * 0.3f + 0.f };
-                float3 b0{ (float)p2[0], (float)-p2[1], dist(p2[1]) * 0.3f + 0.f };
-                float3 c0{ (float)p3[0], (float)-p3[1], dist(p3[1]) * 0.3f + 0.f };
+                float3 a0{ (float)p1[0], (float)-p1[1], (dist(p1[0]) + dist(p1[1])) * 0.3f + 0.f };
+                float3 b0{ (float)p2[0], (float)-p2[1], (dist(p2[0]) + dist(p2[1])) * 0.3f + 0.f };
+                float3 c0{ (float)p3[0], (float)-p3[1], (dist(p3[0]) + dist(p3[1])) * 0.3f + 0.f };
 
                 int idx = res.positions.size();
 
@@ -170,34 +184,26 @@ void generate_broken_glass(
                 }
                 else
                 {
-                    /*res.positions.push_back(a - pos);
+                    res.positions.push_back(a - pos);
                     res.positions.push_back(b - pos);
                     res.positions.push_back(c - pos);
 
-                    res.positions.push_back((a + b) / 2.f - pos);
-                    res.positions.push_back((a + c) / 2.f - pos);
-                    res.positions.push_back((b + c) / 2.f - pos);
+                    res.indexes.emplace_back(idx, idx + 1, idx + 2);
 
-                    res.indexes.emplace_back(idx, idx + 3, idx + 4);
-                    res.indexes.emplace_back(idx + 4, idx + 3, idx + 5);
-                    res.indexes.emplace_back(idx + 5, idx + 2, idx + 4);
-                    res.indexes.emplace_back(idx + 5, idx + 2, idx + 4);
-                    res.indexes.emplace_back(idx + 1, idx + 5, idx + 3);
+                    float3 center{ 0.5f, -0.5f, 0.0 };
+                    auto dist = length(a - center);
 
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
-                    res.normals.push_back({ 0.f, 0.f, 1.f });
+                    dist = 1 - dist;
+
+                    dist = std::max(0.f, std::min(1.f, dist));
+
+                    res.normals.push_back(dist* (a - float3{ 0.f, 0.f, -3.f }));
+                    res.normals.push_back(dist* (a - float3{ 0.f, 0.f, -3.f }));
+                    res.normals.push_back(dist* (a - float3{ 0.f, 0.f, -3.f }));
 
                     res.uvs.push_back({ a.x, a.y / 2 });
                     res.uvs.push_back({ b.x, b.y / 2 });
                     res.uvs.push_back({ c.x, c.y / 2 });
-
-                    res.uvs.push_back({ (a.x + b.x) / 2, (a.y + b.y) / 4 });
-                    res.uvs.push_back({ (a.x + c.x) / 2, (a.y + c.y) / 4 });
-                    res.uvs.push_back({ (b.x + c.x) / 2, (b.y + c.y) / 4 });*/
                 }
             }
         }
