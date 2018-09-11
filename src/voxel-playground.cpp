@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
     int tube_idx = 0;
 
     auto cylinder = generate_tube(length, radius, 0.f, a, b);
-    auto bent_cylinder = generate_tube4(length, radius, -1.f, a, b);
+    auto bent_cylinder = generate_tube(length, radius, -1.f, a, b);
     auto cap = generate_cap(1.f, radius, 0.5f);
 
     const int glass_variations = 4;
@@ -528,22 +528,27 @@ int main(int argc, char* argv[])
 
             if (t0 < last_t)
             {
-                auto n = cylinder.positions.size();
+                auto n = bent_cylinder.positions.size();
 
                 go->glass_id = rand() % go->glasses.size();
 
                 float3 to_camera;
                 float3 normal;
-                do
+                //do
                 {
+                    float4x4 mat = mul(
+                        translation_matrix(float3{ 0.f, 0.f, -3.f }),
+                        scaling_matrix(float3{ 1.f, 1.f, 1.f })
+                    );
+
                     auto k = int(0.2 * n + rand() % int(n * 0.6));
 
-                    auto pos = cylinder.positions[k];
+                    auto pos = mul(mat, float4(bent_cylinder.positions[k], 1.0)).xyz();
                     auto cam_pos = cam->get_position();
                     to_camera = cam_pos - pos;
 
-                    normal = normalize(cylinder.normals[k]);
-                    auto tangent = normalize(cylinder.tangents[k]);
+                    normal = normalize(mul(mat, float4(bent_cylinder.normals[k], 1.0)).xyz());
+                    auto tangent = normalize(mul(mat, float4(bent_cylinder.tangents[k], 1.0)).xyz());
                     auto third = normalize(cross(normal, tangent));
                     tsp = {
                         { tangent, 0.f },
@@ -552,11 +557,11 @@ int main(int argc, char* argv[])
                         { pos, 1.f }
                     };
 
-                    auto uvs = cylinder.uvs[k];
+                    auto uvs = bent_cylinder.uvs[k];
 
                     go->tb_shader.set_decal_uvs(uvs);
 
-                } while (dot(to_camera, normal) < 0.f);
+                } //while (dot(to_camera, normal) < 0.f);
             }
             last_t = t0;
 
@@ -603,13 +608,11 @@ int main(int argc, char* argv[])
 
         go->tb_shader.enable_normal_mapping(true);
 
-        go->glass_impact->get_color_texture().bind(3);
         go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 0.f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
         go->tube->draw();
-        go->glass_impact->get_color_texture().unbind();
 
         go->tb_shader.set_model(mul(
             translation_matrix(float3{ 0.f, 0.f, 5.f }),
@@ -630,10 +633,12 @@ int main(int argc, char* argv[])
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
 
+        go->glass_impact->get_color_texture().bind(3);
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         go->bent_tube->draw();
         //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         //go->tube->draw();
+        go->glass_impact->get_color_texture().unbind();
 
         go->tb_shader.set_model(mul(
             translation_matrix(float3{ 5.f, 0.f, -0.f }),
