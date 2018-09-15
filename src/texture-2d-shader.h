@@ -55,3 +55,34 @@ private:
     float2 _scale;
     std::shared_ptr<vao> _geometry;
 };
+
+class visualizer_2d
+{
+public:
+    visualizer_2d()
+        : visualizer_2d(std::make_shared<texture_2d_shader>())
+    {
+    }
+
+    visualizer_2d(std::shared_ptr<texture_2d_shader> shader)
+        : tex_2d_shader(shader)
+    {
+    }
+
+    void draw_texture(texture& tex)
+    {
+        draw_texture({ 0.f, 0.f }, { 1.f, 1.f }, tex);
+    }
+
+    void draw_texture(float2 pos, float2 scale, texture& tex)
+    {
+        tex_2d_shader->begin();
+        _visualizer.set_position(pos);
+        _visualizer.set_scale(scale);
+        _visualizer.draw(*tex_2d_shader, tex);
+        tex_2d_shader->end();
+    }
+private:
+    texture_visualizer _visualizer;
+    std::shared_ptr<texture_2d_shader> tex_2d_shader;
+};

@@ -98,7 +98,7 @@ void main(void){
 
 	float near_decal = (1 - dest_space.w);
 
-	if (do_normal_mapping > 0 && mask_val > 0 && nDotc0 > 0)
+	if (do_normal_mapping > 0 && mask_val > 0)
 	{
 		color.xyz *= (vec3(glass_diffuse.z) * 1.5 + 1.0);
 		color.xyz += (vec3(glass_diffuse.z) * gold_noise(glass_tex, 2.0) * 0.5);
@@ -112,12 +112,12 @@ void main(void){
 			float dx = (dest_space.x - 0.5) * 2;
 			float dy = (dest_space.y - 0.5) * 2;
 			//
-			if (((dx * p.x < 0) && (abs(dx) < 0.5) &&
+			if (((dx * p.x < 0) && (abs(dx) < 0.7) &&
 				(abs(dx) < abs(p.x)))
 				||
-				((dy * p.y < 0) && (abs(dy) < 0.5) &&
+				((dy * p.y < 0) && (abs(dy) < 0.7) &&
 				(abs(dy) < abs(p.y)))
-				)
+				) 
 			{
 				float nx = gold_noise(p, 5.0);
 				float ny = gold_noise(p, 7.0);

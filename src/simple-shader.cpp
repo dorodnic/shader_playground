@@ -67,4 +67,15 @@ void simple_shader::set_material_properties(
     _shader->load_uniform(_shine_location, shine);
     _shader->load_uniform(_reflectivity_location, reflectivity);
     _shader->load_uniform(_ambient_location, ambient);
+
+    _ambient = ambient;
+    _shine = shine;
+    _reflectivity = reflectivity;
+}
+
+void simple_shader::get_material_properties(float & ambient, float & shine, float & reflectivity)
+{
+    ambient = _ambient;
+    shine = _shine;
+    reflectivity = _reflectivity;
 }

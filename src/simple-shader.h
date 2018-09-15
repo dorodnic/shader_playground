@@ -22,6 +22,8 @@ public:
     virtual void set_material_properties(float ambient,
         float shine, float reflectivity);
 
+    void get_material_properties(float& ambient, float& shine, float& reflectivity);
+
     int diffuse_slot() const { return 0; }
 
 protected:
@@ -41,4 +43,6 @@ private:
     uint32_t _ambient_location;
     uint32_t _shine_location;
     uint32_t _reflectivity_location;
+
+    float _ambient, _shine, _reflectivity;
 };

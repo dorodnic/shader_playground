@@ -110,6 +110,7 @@ add_executable(voxel-playground
     src/fbo.cpp src/fbo.h
     src/camera.cpp src/camera.h 
     src/model.cpp src/model.h
+    src/textures.cpp src/textures.h
     src/loader.cpp src/loader.h
     third-party/imgui/imgui.cpp 
     third-party/imgui/imgui_draw.cpp 

@@ -193,9 +193,9 @@ void generate_broken_glass(
                     float3 center{ 0.5f, -0.5f, 0.0 };
                     auto dist = length(a - center);
 
-                    dist = 1 - dist;
-
                     dist = std::max(0.f, std::min(1.f, dist));
+
+                    dist = pow(1 - dist, 3.f) * 5.f;
 
                     res.normals.push_back(dist* (a - float3{ 0.f, 0.f, -3.f }));
                     res.normals.push_back(dist* (a - float3{ 0.f, 0.f, -3.f }));

@@ -3,8 +3,6 @@
 #include "util.h"
 #include "loader.h"
 
-typedef std::function<std::function<float3(const float3&)>(const float3&)> tanget_space;
-
 struct glass_peice
 {
     obj_mesh peice;
