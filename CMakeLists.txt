@@ -55,6 +55,7 @@ if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
                   resources/cube.obj
                   resources/normal_map.png
                   resources/white.png
+                  resources/save.dat
                   )
 
     foreach(item IN LISTS RESOURCES)
@@ -123,7 +124,8 @@ add_executable(voxel-playground
 include_directories(voxel-playground third-party/imgui third-party/gl3w/include 
                     third-party/easyloggingpp third-party third-party/readerwriterqueue
                     third-party/voronoi/include
-                    third-party/linalg third-party/OBJ-Loader)
+                    third-party/linalg third-party/OBJ-Loader
+                    third-party/serializer)
 target_link_libraries(voxel-playground ${DEPENDENCIES} voronoi)
 add_dependencies(voxel-playground resources-target)
 

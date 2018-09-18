@@ -76,9 +76,9 @@ void camera::update(const window& w, bool force)
             w.width(), w.height(), // screen (window) size
             static_cast<int>(_prev_mouse.x), static_cast<int>(w.get_mouse().x),
             static_cast<int>(_prev_mouse.y), static_cast<int>(w.get_mouse().y),
-            (ImGui::GetIO().MouseDown[2] || ImGui::GetIO().MouseDown[1]) ? 1 : 0,
+            (ImGui::GetIO().MouseDown[2]) ? 1 : 0,
             ImGui::GetIO().MouseDown[0] ? 1 : 0,
-            0,
+            w.get_mouse().mouse_wheel,
             0);
     }
 

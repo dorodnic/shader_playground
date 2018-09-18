@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <iomanip>
 
 #include "shader.h"
 #include "window.h"
@@ -17,6 +18,7 @@
 #include "glass-decals.h"
 #include "textures.h"
 
+#include <serializer.h>
 #include <easylogging++.h>
 INITIALIZE_EASYLOGGINGPP
 
@@ -32,10 +34,7 @@ LOG(INFO) << #x << " = " << max_textures;\
 
 struct graphic_objects
 {
-    std::map<std::string, std::shared_ptr<vao>> tubes;
-
-    std::shared_ptr<vao> earth, tube, bent_tube, 
-        rotated_tube, cat, grid, cap;
+    std::shared_ptr<vao> earth, cat, grid;
 
     visualizer_2d viz;
 
@@ -45,6 +44,114 @@ struct graphic_objects
 
     std::shared_ptr<fbo> background_pass, tubes_interior_pass;
 };
+
+struct tube_peice
+{
+    int type;
+    int2 pos;
+    bool damaged = false;
+    int damaged_idx = 0;
+    int glass_decal = 0;
+
+    friend zpp::serializer::access;
+    template <typename Archive, typename Self>
+    static void serialize(Archive & archive, Self & self)
+    {
+        archive(self.type, self.pos.x, self.pos.y,
+                self.damaged, self.damaged_idx, self.glass_decal);
+    }
+};
+
+struct save_header
+{
+    int version = 1;
+
+    friend zpp::serializer::access;
+    template <typename Archive, typename Self>
+    static void serialize(Archive & archive, Self & self)
+    {
+        archive(self.version);
+    }
+};
+
+float3 mouse_pick(const int2& mouse,
+    const int2& wh,
+    const float4x4& proj,
+    const float4x4& view)
+{
+    float2 normalized{
+        2.f * mouse.x / wh.x - 1.f,
+        1.0f - (2.0f * mouse.y) / wh.y,
+    };
+    float4 clipSpace{
+        normalized.x,
+        normalized.y,
+        -1.f,
+        1.f
+    };
+    auto invP = inverse(proj);
+    auto eyeSpace = mul(invP, clipSpace);
+    eyeSpace.z = -1.f;
+    eyeSpace.w = 0.f;
+    auto invV = inverse(view);
+    return normalize(mul(invV, eyeSpace).xyz());
+}
+
+bool ImCheckButton(bool* state, const char* toggled_text, const char* untoggled_text)
+{
+    bool res = false;
+    if (*state)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.8f, 0.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.9f, 0.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.4f, 0.f, 1.f));
+        if (ImGui::Button(toggled_text, { 235, 0 }))
+        {
+            *state = false;
+            res = true;
+        }
+        ImGui::PopStyleColor(3);
+    }
+    else
+    {
+        if (ImGui::Button(untoggled_text, { 235, 0 }))
+            *state = true;
+    }
+    return res;
+}
+
+void load_tubes(std::vector<tube_peice>& tubes)
+{
+    std::vector<unsigned char> data;
+    std::ifstream file("resources/save.dat", std::ios::in | std::ifstream::binary);
+    assert(file.is_open());
+    std::istreambuf_iterator<char> iter(file);
+    std::copy(iter, std::istreambuf_iterator<char>{}, std::back_inserter(data));
+
+    zpp::serializer::memory_input_archive in(data);
+
+    save_header header{};
+    save_header expected_header{};
+    in(header);
+    if (header.version == expected_header.version)
+    {
+        in(tubes);
+    }
+}
+
+void save_tubes(const std::vector<tube_peice>& tubes)
+{
+    save_header header{};
+    std::vector<unsigned char> data;
+    zpp::serializer::memory_output_archive out(data);
+
+    out(header);
+    out(tubes);
+
+    std::ofstream fout("resources/save.dat", std::ios::out | std::ios::binary);
+    fout.write((char*)data.data(), data.size());
+    fout.close();
+}
 
 int main(int argc, char* argv[])
 {
@@ -75,6 +182,8 @@ int main(int argc, char* argv[])
 
     glass_atlas glass(textures);
 
+    std::vector<tube_peice> tubes;
+
     auto reload_textures = [&]() {
         textures.reload_all();
     };
@@ -94,15 +203,15 @@ int main(int argc, char* argv[])
     auto diffuse_level = 0.6f;
     auto light_angle = 0.f;
     bool rotate_light = true;
-    float fov = 160.f;
+    float fov = 80.f;
 
     int a = 27;
     int b = 27;
     float radius = 1.f;
     float length = 3.f;
 
-    auto cam = std::make_unique<camera>(*app, false, fov);
-    cam->set_position({ 50.f, 50.f, 50.f });
+    auto cam = std::make_unique<camera>(*app, true, fov);
+    cam->set_position({ 8.f, 16.f, 8.f });
     cam->look_at({ 0.f, 0.f, 0.f });
 
     int2 fbo_resolutions[] = {
@@ -131,17 +240,15 @@ int main(int argc, char* argv[])
     };
 
     std::vector<const char*> tubes_names;
-    std::vector<vao*> tube_vaos;
+    std::vector<std::shared_ptr<vao>> tube_vaos;
+    std::vector<obj_mesh*> tube_meshes;
+    std::map<std::string, obj_mesh> tube_types;
     int tube_idx = 0;
 
-    auto cylinder = generate_tube(length, radius, 0.f, a, b);
-    auto bent_cylinder = generate_tube(length, radius, -1.f, a, b);
-    auto cap = generate_cap(1.f, radius, 0.5f);
-
-    auto reload_models = [&]() {
-
-        go->tubes.clear();
-
+    {
+        auto cylinder = generate_tube(length, radius, 0.f, a, b);
+        auto bent_cylinder = generate_tube(length, radius, -1.f, a, b);
+        auto cap = generate_cap(1.f, radius, 0.5f);
         float3x3 r{
             { 0.f, 0.f, 1.f },
             { 0.f, 1.f, 0.f },
@@ -155,93 +262,97 @@ int main(int argc, char* argv[])
 
         auto t2x2h = generate_tube(2.f, 1.f, 0, 1, 32);
         auto t2x2l = generate_tube(2.f, 1.f, 0, 1, 12);
-        go->tubes["2x2,1,H"] = vao::create(apply(
-            t2x2h, id, { 0.f, 0.f, 0.5f }));
-        go->tubes["2x2,1,L"] = vao::create(apply(
-            t2x2l, id, { 0.f, 0.f, 0.5f }));
+        tube_types["2x2,1,H"] = apply(
+            t2x2h, id, { 0.f, 0.f, 0.5f });
+        tube_types["2x2,1,L"] = apply(
+            t2x2l, id, { 0.f, 0.f, 0.5f });
 
-        go->tubes["2x2,2,H"] = vao::create(apply(
-            t2x2h, r, { 0.0f, 0.f, 0.5f }));
-        go->tubes["2x2,2,L"] = vao::create(apply(
-            t2x2l, r, { 0.f, 0.f, 0.5f }));
+        tube_types["2x2,2,H"] = apply(
+            t2x2h, r, { 0.0f, 0.f, 0.5f });
+        tube_types["2x2,2,L"] = apply(
+            t2x2l, r, { 0.f, 0.f, 0.5f });
 
         auto v2x3h = generate_tube(3.f, 1.f, 0, 1, 32);
         auto v2x3l = generate_tube(3.f, 1.f, 0, 1, 12);
-        go->tubes["2x3,1,H"] = vao::create(v2x3h);
-        go->tubes["2x3,1,L"] = vao::create(v2x3l);
+        tube_types["2x3,1,H"] = v2x3h;
+        tube_types["2x3,1,L"] = v2x3l;
 
-        go->tubes["2x3,2,H"] = vao::create(apply(
-            v2x3h, r, { 0.5f, 0.f, 0.5f }));
-        go->tubes["2x3,2,L"] = vao::create(apply(
-            v2x3l, r, { 0.5f, 0.f, 0.5f }, true));
+        tube_types["2x3,2,H"] = apply(
+            v2x3h, r, { 0.5f, 0.f, 0.5f });
+        tube_types["2x3,2,L"] = apply(
+            v2x3l, r, { 0.5f, 0.f, 0.5f }, true);
 
-        go->tubes["2x3,3,H"] = vao::create(apply(
-            v2x3h, id, { 0.f, 0.f, 1.f }));
-        go->tubes["2x3,3,L"] = vao::create(apply(
-            v2x3l, id, { 0.f, 0.f, 1.f }, true));
+        tube_types["2x3,3,H"] = apply(
+            v2x3h, id, { 0.f, 0.f, 1.f });
+        tube_types["2x3,3,L"] = apply(
+            v2x3l, id, { 0.f, 0.f, 1.f }, true);
 
-        go->tubes["2x3,4,H"] = vao::create(apply(
-            v2x3h, r, { -0.5f, 0.f, 0.5f }));
-        go->tubes["2x3,4,L"] = vao::create(apply(
-            v2x3l, r, { -0.5f, 0.f, 0.5f }, true));
+        tube_types["2x3,4,H"] = apply(
+            v2x3h, r, { -0.5f, 0.f, 0.5f });
+        tube_types["2x3,4,L"] = apply(
+            v2x3l, r, { -0.5f, 0.f, 0.5f }, true);
 
         auto t3x3h = generate_tube(3.f, 1.f, -1.f, 32, 32);
         auto t3x3l = generate_tube(3.f, 1.f, -1.f, 12, 12);
-        go->tubes["3x3,1,H"] = vao::create(apply(
-            t3x3h, id, { 0.f, 0.f, 0.f }));
-        go->tubes["3x3,2,H"] = vao::create(apply(
-            t3x3h, r, { 0.5f, 0.f, 0.5f }));
-        go->tubes["3x3,3,H"] = vao::create(apply(
-            t3x3h, mul(r,r), { 0.f, 0.f, 1.f }));
-        go->tubes["3x3,4,H"] = vao::create(apply(
-            t3x3h, mul(r,mul(r, r)), { -0.5f, 0.f, 0.5f }));
+        tube_types["3x3,1,H"] = apply(
+            t3x3h, id, { 0.f, 0.f, 0.f });
+        tube_types["3x3,2,H"] = apply(
+            t3x3h, r, { 0.5f, 0.f, 0.5f });
+        tube_types["3x3,3,H"] = apply(
+            t3x3h, mul(r, r), { 0.f, 0.f, 1.f });
+        tube_types["3x3,4,H"] = apply(
+            t3x3h, mul(r, mul(r, r)), { -0.5f, 0.f, 0.5f });
 
-        go->tubes["3x3,1,L"] = vao::create(apply(
-            t3x3l, id, { 0.f, 0.f, 0.f }));
-        go->tubes["3x3,2,L"] = vao::create(apply(
-            t3x3l, r, { 0.5f, 0.f, 0.5f }));
-        go->tubes["3x3,3,L"] = vao::create(apply(
-            t3x3l, mul(r, r), { 0.f, 0.f, 1.f }));
-        go->tubes["3x3,4,L"] = vao::create(apply(
-            t3x3l, mul(r, mul(r, r)), { -0.5f, 0.f, 0.5f }));
+        tube_types["3x3,1,L"] = apply(
+            t3x3l, id, { 0.f, 0.f, 0.f });
+        tube_types["3x3,2,L"] = apply(
+            t3x3l, r, { 0.5f, 0.f, 0.5f });
+        tube_types["3x3,3,L"] = apply(
+            t3x3l, mul(r, r), { 0.f, 0.f, 1.f });
+        tube_types["3x3,4,L"] = apply(
+            t3x3l, mul(r, mul(r, r)), { -0.5f, 0.f, 0.5f });
 
         auto t4x3h = generate_tube3(length, radius, 16, 16);
         auto t4x3l = generate_tube3(length, radius, 16, 16);
-        go->tubes["4x3,1,H"] = vao::create(apply(
-            t4x3h, id, { 0.f, 0.f, 1.f }));
-        go->tubes["4x3,1,L"] = vao::create(apply(
-            t4x3l, id, { 0.f, 0.f, 1.f }));
+        tube_types["4x3,1,H"] = apply(
+            t4x3h, id, { 0.f, 0.f, 1.f });
+        tube_types["4x3,1,L"] = apply(
+            t4x3l, id, { 0.f, 0.f, 1.f });
 
-        go->tubes["4x3,2,H"] = vao::create(apply(
-            t4x3h, r, { -0.5f, 0.f, 0.5f }));
-        go->tubes["4x3,2,L"] = vao::create(apply(
-            t4x3l, r, { -0.5f, 0.f, 0.5f }));
+        tube_types["4x3,2,H"] = apply(
+            t4x3h, r, { -0.5f, 0.f, 0.5f });
+        tube_types["4x3,2,L"] = apply(
+            t4x3l, r, { -0.5f, 0.f, 0.5f });
 
-        go->tubes["4x3,3,H"] = vao::create(apply(
-            t4x3h, mul(r, r), { 0.f, 0.f, 0.f }));
-        go->tubes["4x3,3,L"] = vao::create(apply(
-            t4x3l, mul(r, r), { 0.f, 0.f, 0.f }));
+        tube_types["4x3,3,H"] = apply(
+            t4x3h, mul(r, r), { 0.f, 0.f, 0.f });
+        tube_types["4x3,3,L"] = apply(
+            t4x3l, mul(r, r), { 0.f, 0.f, 0.f });
 
-        go->tubes["4x3,4,H"] = vao::create(apply(
-            t4x3h, mul(r, mul(r, r)), { 0.5f, 0.f, 0.5f }));
-        go->tubes["4x3,4,L"] = vao::create(apply(
-            t4x3l, mul(r, mul(r, r)), { 0.5f, 0.f, 0.5f }));
+        tube_types["4x3,4,H"] = apply(
+            t4x3h, mul(r, mul(r, r)), { 0.5f, 0.f, 0.5f });
+        tube_types["4x3,4,L"] = apply(
+            t4x3l, mul(r, mul(r, r)), { 0.5f, 0.f, 0.5f });
 
         auto t4x4h = generate_tube4(length, radius, -1.f, 16, 16);
         auto t4x4l = generate_tube4(length, radius, -1.f, 16, 16);
-        go->tubes["4x4,1,H"] = vao::create(apply(
-            t4x4h, id, { 0.f, 0.f, 1.f }));
-        go->tubes["4x4,1,L"] = vao::create(apply(
-            t4x4l, id, { 0.f, 0.f, 1.f }));
+        tube_types["4x4,1,H"] = apply(
+            t4x4h, id, { 0.f, 0.f, 1.f });
+        tube_types["4x4,1,L"] = apply(
+            t4x4l, id, { 0.f, 0.f, 1.f });
+    }
 
+    auto reload_models = [&]() {
         tube_vaos.clear();
         tubes_names.clear();
+        tube_meshes.clear();
         int counter = 0;
-        for (auto& kvp : go->tubes)
+        for (auto& kvp : tube_types)
         {
             if (counter++ % 2)
                 tubes_names.push_back(kvp.first.c_str());
-            tube_vaos.push_back(kvp.second.get());
+            tube_vaos.push_back(vao::create(kvp.second));
+            tube_meshes.push_back(&kvp.second);
         }
         tube_idx = tubes_names.size() - 1;
 
@@ -250,11 +361,7 @@ int main(int argc, char* argv[])
         glass.generate_decals(white);
         app->is_alive();
 
-        go->rotated_tube = vao::create(apply(cylinder, r, { 0.f, 0.f, 0.f }, true));
-        go->tube = vao::create(cylinder);
-        go->cap = vao::create(cap);
-        go->bent_tube = vao::create(bent_cylinder);
-        go->grid = vao::create(make_grid(10, 10, 1.f, 1.f));
+        go->grid = vao::create(make_grid(20, 20, 1.f, 1.f));
         go->cat = vao::create(cat_ld.get().front());
         go->earth = vao::create(ld.get().front());
     };
@@ -282,6 +389,8 @@ int main(int argc, char* argv[])
         });
     };
 
+    bool show_grid = false;
+
     auto draw_refractables = [&](float t) {
         double factor = sin(t / 2.0);
         double x = -0.2 * factor;
@@ -305,11 +414,15 @@ int main(int argc, char* argv[])
             translation_matrix(float3{ 0.f, -1.f, 0.5f }),
             scaling_matrix(float3{ 1.f, 1.f, 1.f })
         ));
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        //go->white.bind(0);
-        //go->grid->draw();
-        //go->white.unbind();
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        if (show_grid)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            textures.with_texture(white, 0, [&]() {
+                go->grid->draw();
+            });
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
     };
 
     float last_t = 1.f;
@@ -320,42 +433,66 @@ int main(int argc, char* argv[])
         { 0.f, 0.f, 0.f, 1.f }
     };
 
-    auto draw_tubes = [&](texture_handle refraction_id) {
+    float3 pos;
+    bool build_tool_active = false;
+
+    auto draw_tubes = [&](texture_handle refraction_id, int tube_type) {
         textures.with_texture(mish, go->tb_shader.diffuse_slot(), [&]() {
         textures.with_texture(normals, go->tb_shader.normal_map_slot(), [&]() {
         textures.with_texture(refraction_id, go->tb_shader.refraction_slot(), [&]() {
-        textures.with_texture(empty_texture, go->tb_shader.glass_atlas_slot(), [&]() {
-        textures.with_texture(empty_texture, go->tb_shader.decal_atlas_slot(), [&]() {
-
             go->tb_shader.enable_normal_mapping(true);
 
-            go->tb_shader.set_model(mul(
-                translation_matrix(float3{ 0.f, 0.f, 0.f }),
-                scaling_matrix(float3{ 1.f, 1.f, 1.f })
-            ));
-            go->tube->draw();
+            if (build_tool_active)
+            {
+                go->tb_shader.set_model(mul(
+                    translation_matrix(pos),
+                    scaling_matrix(float3{ 1.f, 1.f, 1.f })
+                ));
+                tube_vaos[tube_type * 2]->draw();
+            }
 
-            go->tb_shader.set_model(mul(
-                translation_matrix(float3{ 0.f, 0.f, 5.f }),
-                scaling_matrix(float3{ 1.f, 1.f, 1.f })
-            ));
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            go->cap->draw();
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            //go->tb_shader.set_model(mul(
+            //    translation_matrix(float3{ 0.f, 0.f, 5.f }),
+            //    scaling_matrix(float3{ 1.f, 1.f, 1.f })
+            //));
+            ////glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            //go->cap->draw();
+            ////glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-            go->tb_shader.set_model(mul(
-                translation_matrix(float3{ 0.f, 0.f, 3.f }),
-                scaling_matrix(float3{ 1.f, 1.f, 1.f })
-            ));
-            go->tube->draw();
+            //go->tb_shader.set_model(mul(
+            //    translation_matrix(float3{ 0.f, 0.f, 3.f }),
+            //    scaling_matrix(float3{ 1.f, 1.f, 1.f })
+            //));
+            //go->tube->draw();
 
-            go->tb_shader.set_model(mul(
-                translation_matrix(float3{ 5.f, 0.f, -0.f }),
-                scaling_matrix(float3{ 1.f, 1.f, 1.f })
-            ));
-            tube_vaos[tube_idx * 2 + (fov <= 120 ? 1 : 0)]->draw();
+            for (auto& t : tubes)
+            {
+                auto trans = mul(
+                    translation_matrix(float3{ (float)t.pos.x, 0.f, (float)t.pos.y }),
+                    scaling_matrix(float3{ 1.f, 1.f, 1.f })
+                );
+                go->tb_shader.set_model(trans);
+                if (t.damaged)
+                {
+                    glass.set_hitpoint(*tube_meshes[t.type * 2], trans, t.damaged_idx, t.glass_decal);
+                    glass.prepare_decal(go->tb_shader);
+                    textures.with_texture(glass.diffuse(), go->tb_shader.glass_atlas_slot(), [&]() {
+                    textures.with_texture(glass.outline(), go->tb_shader.decal_atlas_slot(), [&]() {
+                        tube_vaos[t.type * 2]->draw();
+                    });
+                    });
+                }
+                else
+                {
+                    textures.with_texture(empty_texture, go->tb_shader.glass_atlas_slot(), [&]() {
+                    textures.with_texture(empty_texture, go->tb_shader.decal_atlas_slot(), [&]() {
+                        tube_vaos[t.type * 2]->draw();
+                    });
+                    });
+                }
+            }
 
-            go->tb_shader.set_model(mul(
+            /*go->tb_shader.set_model(mul(
                 translation_matrix(float3{ 0.f, 0.f, -3.f }),
                 scaling_matrix(float3{ 1.f, 1.f, 1.f })
             ));
@@ -364,9 +501,7 @@ int main(int argc, char* argv[])
             textures.with_texture(glass.outline(), go->tb_shader.decal_atlas_slot(), [&]() {
                 go->bent_tube->draw();
             });
-            });
-        });
-        });
+            });*/
         });
         });
         });
@@ -379,7 +514,19 @@ int main(int argc, char* argv[])
         textures.with_texture(mish, go->tb_shader.diffuse_slot(), [&]() {
         textures.with_texture(normals, go->tb_shader.normal_map_slot(), [&]() {
         textures.with_texture(refraction_id, go->tb_shader.refraction_slot(), [&]() {
-            glass.draw_scatter(t, go->tb_shader);
+            for (auto& tb : tubes)
+            {
+                if (tb.damaged)
+                {
+                    auto trans = mul(
+                        translation_matrix(float3{ (float)tb.pos.x, 0.f, (float)tb.pos.y }),
+                        scaling_matrix(float3{ 1.f, 1.f, 1.f })
+                    );
+                    glass.set_hitpoint(*tube_meshes[tb.type * 2], trans, tb.damaged_idx, tb.glass_decal);
+                    
+                    glass.draw_scatter(t, go->tb_shader);
+                }
+            }
         });
         });
         });
@@ -415,24 +562,43 @@ int main(int argc, char* argv[])
     app->is_alive();
     LOG(INFO) << "All Good, starting main loop";
 
+    int tube_type = 0;
+
+    if (file_exists("resources/save.dat"))
+    {
+        load_tubes(tubes);
+    }
+
     while (app->is_alive() && !exit)
     {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
-        if (app->get_mouse().mouse_wheel && app->get_mouse().x >= 250)
+        //if (app->get_mouse().mouse_wheel && app->get_mouse().x >= 250)
+        //{
+        //    fov = std::min(500.f, std::max(50.f, fov + app->get_mouse().mouse_wheel * 10));
+
+        //    auto pos = cam->get_position();
+        //    auto target = cam->get_target();
+
+        //    cam = std::make_unique<camera>(*app, false, fov);
+
+        //    cam->set_position(pos);
+        //    cam->look_at(target);
+        //    cam->update(*app, true);
+        //}
+
+        if (build_tool_active && app->get_mouse().x > 250)
         {
-            fov = std::min(500.f, std::max(50.f, fov + app->get_mouse().mouse_wheel * 10));
-
-            auto pos = cam->get_position();
-            auto target = cam->get_target();
-
-            cam = std::make_unique<camera>(*app, false, fov);
-
-            cam->set_position(pos);
-            cam->look_at(target);
-            cam->update(*app, true);
+            if (ImGui::IsMouseClicked(1)) tube_type = (tube_type + 1) % (tube_vaos.size() / 2);
+            if (ImGui::IsMouseClicked(0))
+            {
+                tube_peice tb;
+                tb.pos = { (int)pos.x, (int)pos.z };
+                tb.type = tube_type;
+                tubes.push_back(tb);
+            }
         }
 
         auto s = std::abs(std::sinf(app->get_time())) * 0.2f + 0.8f;
@@ -481,7 +647,7 @@ int main(int argc, char* argv[])
         go->tb_shader.set_mvp(matrix, cam->view_matrix(), cam->projection_matrix());
         go->tb_shader.set_distortion(0.2f);
 
-        draw_tubes(first_pass_color);
+        draw_tubes(first_pass_color, tube_type);
 
         glCullFace(GL_BACK);
 
@@ -499,7 +665,7 @@ int main(int argc, char* argv[])
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
 
-        draw_tubes(first_pass_color);
+        draw_tubes(first_pass_color, tube_type);
 
         //--
         glEnable(GL_CULL_FACE);
@@ -507,7 +673,7 @@ int main(int argc, char* argv[])
 
         go->tb_shader.set_distortion(0.1f);
         
-        draw_tubes(second_pass_color);
+        draw_tubes(second_pass_color, tube_type);
         draw_scatter(second_pass_color, t);
 
         glEnable(GL_CULL_FACE);
@@ -523,6 +689,22 @@ int main(int argc, char* argv[])
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
 
+        auto ray = mouse_pick(
+            int2{ (int)app->get_mouse().x, (int)app->get_mouse().y },
+            int2{ app->width(), app->height() },
+            cam->projection_matrix(),
+            cam->view_matrix());
+        //LOG(INFO) << ray.x << " " << ray.y << " " << ray.z;
+
+        auto normal = float3{ 0.f,1.f,0.f };
+
+        auto t1 = -cam->get_position().y / ray.y;
+
+        pos = cam->get_position() + t1 * ray;
+        pos.x = floorf(pos.x);
+        pos.z = floorf(pos.z);
+        //LOG(INFO) << t1 << ":\t" <<  ray.x << " " << ray.y << " " << ray.z;
+
         const auto flags = ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse;
@@ -531,19 +713,42 @@ int main(int argc, char* argv[])
 
         ImGui::Begin("Control Panel", nullptr, flags);
 
+        //std::stringstream ss;
+        //ss << std::setprecision(3) << ray.x << " " << ray.y << " " << ray.z;
+        //ImGui::Text("%s", ss.str().c_str());
+        //ss.str("");
+        //ss << t1 << ": " << intr.x << " " << intr.y << " " << intr.z;
+        //ImGui::Text("%s", ss.str().c_str());
+
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
-        ImGui::PushItemWidth(-1);
         if (ImGui::Button("Exit to Desktop", { 235, 0 }))
             exit = true;
 
-        if (ImGui::Button("Randomize"))
+        if (ImGui::CollapsingHeader("Controls", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            auto trans = mul(
-                translation_matrix(float3{ 0.f, 0.f, -3.f }),
-                scaling_matrix(float3{ 1.f, 1.f, 1.f })
-            );
-            glass.randomize_hitpoint(bent_cylinder, trans);
+            if (ImGui::Button("Randomize"))
+            {
+                int random_tube = rand() % tubes.size();
+                auto& t = tubes[random_tube];
+                t.damaged = true;
+                t.damaged_idx = rand() % tube_meshes[t.type * 2]->positions.size();
+                t.glass_decal = rand();
+            }
+
+            if (ImCheckButton(&build_tool_active, "Exit Build Mode", "Enter Build Mode"))
+            {
+                tube_type = 0;
+            }
+
+            if (ImGui::Button("Clear", { 70, 0 })) tubes.clear();
+            ImGui::SameLine();
+            if (ImGui::Button("Save", { 75, 0 })) save_tubes(tubes);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Load", { 75, 0 })) load_tubes(tubes);
+
+            ImGui::Checkbox("Display Grid", &show_grid);
         }
 
         if (ImGui::CollapsingHeader("Light Settings"))

@@ -40,12 +40,14 @@ public:
 
     void generate_decals(texture_handle white);
     void draw_scatter(float t, tube_shader& shader);
+    void prepare_decal(tube_shader& shader);
 
     const int glass_variations = 4;
 
     glass_atlas(textures& tex);
 
-    void randomize_hitpoint(const obj_mesh& mesh, const float4x4& transform);
+    void set_hitpoint(const obj_mesh& mesh, const float4x4& transform, 
+        int idx, int glass);
 
     texture_handle diffuse() const { return diffuse_glass_atlas; }
     texture_handle outline() const { return final_glass_atlas; }

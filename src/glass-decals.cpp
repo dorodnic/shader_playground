@@ -236,24 +236,24 @@ glass_atlas::glass_atlas(textures& tex) : _textures(tex)
     tsp = identity_t{};
 }
 
-void glass_atlas::randomize_hitpoint(
+void glass_atlas::set_hitpoint(
     const obj_mesh& mesh, 
-    const float4x4& transform)
+    const float4x4& transform,
+    int idx, int glass
+    )
 {
     auto n = mesh.positions.size();
 
-    glass_id = rand() % glasses.size();
+    glass_id = glass % glasses.size();
 
     float3 normal;
 
     float4x4 mat = transform;
 
-    auto k = int(0.2 * n + rand() % int(n * 0.6));
+    auto pos = mul(mat, float4(mesh.positions[idx], 1.0)).xyz();
 
-    auto pos = mul(mat, float4(mesh.positions[k], 1.0)).xyz();
-
-    normal = normalize(mesh.normals[k]);
-    auto tangent = normalize(mesh.tangents[k]);
+    normal = normalize(mesh.normals[idx]);
+    auto tangent = normalize(mesh.tangents[idx]);
     auto third = normalize(cross(normal, tangent));
     tsp = {
         { tangent, 0.f },
@@ -262,7 +262,7 @@ void glass_atlas::randomize_hitpoint(
         { pos, 1.f }
     };
 
-    uvs = mesh.uvs[k];
+    uvs = mesh.uvs[idx];
 }
 
 void glass_atlas::draw_scatter(float t, tube_shader& shader)
@@ -273,9 +273,6 @@ void glass_atlas::draw_scatter(float t, tube_shader& shader)
     shader.get_material_properties(ambient, shine, reflectivity);
 
     shader.enable_normal_mapping(false);
-    shader.set_decal_id(glass_id, glass_variations);
-
-    shader.set_decal_uvs(uvs);
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     for (auto& g : glasses[glass_id])
@@ -313,4 +310,11 @@ void glass_atlas::draw_scatter(float t, tube_shader& shader)
 
         g.first->draw();
     }
-};
+}
+
+void glass_atlas::prepare_decal(tube_shader & shader)
+{
+    shader.set_decal_id(glass_id, glass_variations);
+    shader.set_decal_uvs(uvs);
+}
+;
