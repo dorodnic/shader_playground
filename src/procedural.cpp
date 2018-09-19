@@ -285,7 +285,22 @@ obj_mesh fuse(const obj_mesh& a, const obj_mesh& b)
     res.positions.insert(res.positions.end(), b.positions.begin(), b.positions.end());
     res.normals.insert(res.normals.end(), b.normals.begin(), b.normals.end());
     res.tangents.insert(res.tangents.end(), b.tangents.begin(), b.tangents.end());
-    res.uvs.insert(res.uvs.end(), b.uvs.begin(), b.uvs.end());
+
+    auto max_u = std::max_element(res.uvs.begin(), res.uvs.end(), 
+        [](const float2& a, const float2& b) { return a.x < b.x; });
+    auto max_v = std::max_element(res.uvs.begin(), res.uvs.end(), 
+        [](const float2& a, const float2& b) { return a.y < b.y; });
+
+    auto next_u = std::ceilf(max_u->x);
+    auto next_v = std::ceilf(max_v->y);
+
+    auto newuvs = b.uvs;
+    std::for_each(newuvs.begin(), newuvs.end(), [&](float2& uv) {
+        uv.x += next_u;
+        uv.y += next_v;
+    });
+
+    res.uvs.insert(res.uvs.end(), newuvs.begin(), newuvs.end());
 
     return res;
 }
