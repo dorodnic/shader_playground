@@ -647,7 +647,9 @@ int main(int argc, char* argv[])
         go->tb_shader.set_mvp(matrix, cam->view_matrix(), cam->projection_matrix());
         go->tb_shader.set_distortion(0.2f);
 
+        glDisable(GL_DEPTH_TEST);
         draw_tubes(first_pass_color, tube_type);
+        glEnable(GL_DEPTH_TEST);
 
         glCullFace(GL_BACK);
 
